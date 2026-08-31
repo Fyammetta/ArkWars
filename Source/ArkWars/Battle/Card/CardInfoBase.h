@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
+#include "ArkWars/Battle/System/CardManagerSubsystem.h"
 #include "CardInfoBase.generated.h"
 
 /**
@@ -14,7 +14,6 @@ class ARKWARS_API UCardInfoBase : public UObject
 {
 	GENERATED_BODY()
 	
-	
-	
+	TUniquePtr<FCardInfo> Info;
 	
 };

@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "GameplayTagContainer.h"
+#include "Containers/UnrealString.h"
 
 #ifndef REGISTER_TAG
 	#define REGISTER_TAG(Getter,Tag)											\
@@ -14,13 +15,53 @@
 #endif
 
 #ifndef SKILL
-	#define OPERATOR(Operator,Index)	FGameplayTag::RequestGameplayTag("Race."#Operator"."#Index)
+	#define OPERATOR(Operator,Index)	FGameplayTag::RequestGameplayTag("Skill."#Operator"."#Index)
 #endif
 
-#ifndef Card
-	#define OPERATOR(Card)	FGameplayTag::RequestGameplayTag("Card."#Card)
+#ifndef CARD
+	#define  CARD(Card)	FGameplayTag::RequestGameplayTag("Card.Class"#Card)
 #endif
+
+
+
 #pragma  endregion
+
+namespace CardTags
+{
+	REGISTER_TAG(Root, Card)
+	REGISTER_TAG(Class, Card.Class)
+	REGISTER_TAG(Type, Card.Type)
+	REGISTER_TAG(Diamond, Card.Suit.Diamond)
+	REGISTER_TAG(Heart, Card.Suit.Heart)
+	REGISTER_TAG(Club, Card.Suit.Club)
+	REGISTER_TAG(Spade, Card.Suit.Spade)
+	REGISTER_TAG(Point, Card.Point)
+	
+	namespace CardPoint
+	{
+		template<typename FString::ElementType T, bool Cond>
+		struct TIsLegalPoint
+		{
+			static_assert(Cond, "TIsLegalPoint: Point is illegal");
+		};
+		template<wchar_t T>
+		struct TIsLegalPoint<T,true>
+		{
+			constexpr static typename FString::ElementType Value = T;
+		};
+	}
+	
+	template<typename FString::ElementType T>
+	const FGameplayTag& Point()
+	{
+		static FGameplayTag Point_V = 
+			FGameplayTag::RequestGameplayTag(FName(FString::Printf(TEXT("Card.Point.%c"),
+				CardPoint::TIsLegalPoint<T, T == 'K' || T == 'Q' || T == 'J' || T == 'A' || (static_cast<int>(T) >=2 && static_cast<int>(T)<=10) >::Value)));
+		return Point_V;
+	}
+
+	
+}
 
 namespace GameModeTags
 {

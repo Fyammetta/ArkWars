@@ -23,7 +23,7 @@ class ARKWARS_API UGameModeComponentBase : public UActorComponent
 {
 	GENERATED_BODY()
 	
-	TArray<FGameplayTag> DiscardCache;
+	TArray<FGameplayTagContainer> DiscardCache;
 	
 	UPROPERTY()
 	TArray<APlayerState*> Players;
@@ -63,7 +63,7 @@ public:
 	 *	@param Msg		通过Msg传入具体的弃牌情况例如 "[End]" 则回合结束弃牌
 	 */
 	UFUNCTION(BlueprintCallable)
-	virtual void Discard(APlayerState* Player, const TArray<FGameplayTag>& Cards, const FString& Msg);
+	virtual void Discard(APlayerState* Player, const TArray<FGameplayTagContainer>& Cards, const FString& Msg);
 	
 	/**	供特定玩家弃牌，仅将牌弃至缓冲区，阶段结束后才会真正弃置
 	 *	
@@ -83,7 +83,7 @@ private:
 	 *	@param Player	请求者的玩家控制器，用于区分请求的来源，不代表获得者
 	 *	@param Cards	请求的结果，只负责服务端的消耗与下发，不负责分配
 	 */
-	void BroadcastCardToPlayer(APlayerState* Player, const TArray<FGameplayTag>& Cards);
+	void BroadcastCardToPlayer(APlayerState* Player, const TArray<FGameplayTagContainer>& Cards);
 	
 	void ClearDiscardCache();
 	

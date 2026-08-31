@@ -87,14 +87,14 @@ void UGameModeComponentBase::AllocateIdentity()
 
 void UGameModeComponentBase::RequestCard(APlayerState* Player, const FString& Msg)
 {
-	TArray<FGameplayTag> Cards;
+	TArray<FGameplayTagContainer> Cards;
 	//TODO: 解析Msg，根据需求填入卡牌
 	
 	
 	BroadcastCardToPlayer(Player, Cards);
 }
 
-void UGameModeComponentBase::Discard(APlayerState* Player, const TArray<FGameplayTag>& Cards, const FString& Msg)
+void UGameModeComponentBase::Discard(APlayerState* Player, const TArray<FGameplayTagContainer>& Cards, const FString& Msg)
 {
 	DiscardCache.Append(Cards);
 }
@@ -109,7 +109,7 @@ APlayerState* UGameModeComponentBase::GetStageOwner() const
 	return Players[ActorIndex];
 }
 
-void UGameModeComponentBase::BroadcastCardToPlayer(APlayerState* Player, const TArray<FGameplayTag>& Cards)
+void UGameModeComponentBase::BroadcastCardToPlayer(APlayerState* Player, const TArray<FGameplayTagContainer>& Cards)
 {
 	
 }
