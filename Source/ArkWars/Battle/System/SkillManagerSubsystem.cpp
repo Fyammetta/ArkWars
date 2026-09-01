@@ -14,12 +14,12 @@ FSkillInfo::FSkillInfo()
 	SkillName = FText::GetEmpty();
 	Description = FText::GetEmpty();
 	Data = {};
-	Spec = nullptr;
+	SkillClass = nullptr;
 }
 
-FSkillInfo::FSkillInfo(const TSubclassOf<UGameplayAbility>& Ability)
+FSkillInfo::FSkillInfo(const TSubclassOf<USkillComponentBase>& Comp)
 {
-	Spec = MakeUnique<FGameplayAbilitySpec>(Ability);
+	SkillClass = Comp;
 }
 
 FSkillInfo& FSkillInfo::operator=(const FOperatorSkillInfo& Info)
@@ -42,11 +42,6 @@ FSkillInfo& FSkillInfo::operator=(const FSkillInfo& Info)
 	Data = Info.Data;
 	
 	return *this;
-}
-
-FSkillInfo::~FSkillInfo()
-{
-	Spec.Reset();
 }
 
 
@@ -91,12 +86,12 @@ void USkillManagerSubsystem::OnAllOperatorSelected(const TArray<FOperatorCardInf
 		return;
 	}
 
-	Settings->GetSkillMappingDataTable()->ForeachRow<FSkillAbilityMapping>(TEXT("[SkillManager][InitAbility]"), 
-		[&List = SkillMapping, &SkillTags ,InitAll = SkillTags.IsEmpty()](const FName& Key, const FSkillAbilityMapping& Row)->void
+	Settings->GetSkillMappingDataTable()->ForeachRow<FSkillComponentMapping>(TEXT("[SkillManager][InitAbility]"), 
+		[&List = SkillMapping, &SkillTags ,InitAll = SkillTags.IsEmpty()](const FName& Key, const FSkillComponentMapping& Row)->void
 	{
 		if (InitAll || SkillTags.Contains(Row.Tag))
 		{
-			List.Add(Row.Tag) = MakeShared<FSkillInfo>(Row.Ability);
+			*List.Add(Row.Tag) = Row.Comp;
 		}
 	});
 	if (SkillMapping.IsEmpty())
@@ -120,7 +115,7 @@ TSharedPtr<FSkillInfo> USkillManagerSubsystem::AppendSkill(const FGameplayTag& T
 {
 	UE_LOG(LogSkill, Log , TEXT("[SkillManager][AppendSkill]%s Start to append skill %s to container"), *GetLogNetContext(), *Tag.ToString());
 
-	TArray<FSkillAbilityMapping*> Mappings;
+	TArray<FSkillComponentMapping*> Mappings;
 	TArray<FOperatorSkillInfo*> Infos;
 	
 	auto Settings = UOperatorSettings::Get();
@@ -130,7 +125,7 @@ TSharedPtr<FSkillInfo> USkillManagerSubsystem::AppendSkill(const FGameplayTag& T
 		return nullptr;
 	}
 	
-	Settings->GetSkillMappingDataTable()->GetAllRows<FSkillAbilityMapping>(TEXT("[SkillManager][FindAbility]"),Mappings);
+	Settings->GetSkillMappingDataTable()->GetAllRows<FSkillComponentMapping>(TEXT("[SkillManager][FindAbility]"),Mappings);
 	Settings->GetSkillInfoDataTable()->GetAllRows<FOperatorSkillInfo>(TEXT("[SkillManager][FindInfo]"),Infos);
 
 	if (Infos.IsEmpty() || Mappings.IsEmpty())
@@ -140,11 +135,11 @@ TSharedPtr<FSkillInfo> USkillManagerSubsystem::AppendSkill(const FGameplayTag& T
 	}
 	
 	TSharedPtr<FSkillInfo> Ptr = nullptr;
-	for (FSkillAbilityMapping* Mapping : Mappings)
+	for (FSkillComponentMapping* Mapping : Mappings)
 	{
 		if (Mapping->Tag == Tag)
 		{
-			Ptr = MakeShared<FSkillInfo>(Mapping->Ability);
+			Ptr = MakeShared<FSkillInfo>(Mapping->Comp);
 			break;
 		}
 	}

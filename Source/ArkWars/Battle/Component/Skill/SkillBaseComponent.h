@@ -3,23 +3,19 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameplayTagContainer.h"
-#include "ArkWars/Battle/Toolkits/ArkWarTypes.h"
 #include "Components/ActorComponent.h"
-#include "SkillManagerComponent.generated.h"
+#include "SkillBaseComponent.generated.h"
 
 
 struct FSkillInfo;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class ARKWARS_API USkillManagerComponent : public UActorComponent
+class ARKWARS_API USkillComponentBase : public UActorComponent
 {
 	GENERATED_BODY()
 	
-	TArray<TSharedPtr<FSkillInfo>> Skills;
+	TSharedPtr<FSkillInfo> Skills;
 	
 protected:
 	virtual void BeginPlay() override;
-	
-	void InitAsOperator(const FOperatorCardInfo& Info);
 };

@@ -5,6 +5,7 @@
 #include "ArkWars/Battle/Toolkits/ArkWarDelegates.h"
 #include "ArkWars/ArkWars.h"
 #include "ArkWars/Battle/System/BattleGameFlowSubsystem.h"
+#include "ArkWars/Battle/Toolkits/ArkWarGlobal.h"
 #include "ArkWars/Battle/Toolkits/BattleFunctionLibrary.h"
 #include "Net/UnrealNetwork.h"
 
@@ -65,7 +66,7 @@ void ABattleGameState::OnRep_Phase() const
 
 void ABattleGameState::BroadcastPhaseChange() const
 {
-	OnGamePhaseChanged.Broadcast(CachedPhase, CurrentPhase);
+	OnGamePhaseChanged.Broadcast(GamePhase::GamePhaseToTagMap[CachedPhase], GamePhase::GamePhaseToTagMap[CurrentPhase]);
 }
 
 void ABattleGameState::BroadcastActivePlayerChange() const

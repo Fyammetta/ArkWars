@@ -16,26 +16,25 @@ struct FSkillInfo : public FInfoWithData
 {
 	GENERATED_BODY()	
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(BlueprintReadOnly)
 	FGameplayTag SkillTag = {};
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(BlueprintReadOnly)
 	TEnumAsByte<ESkillActivateType> SkillType;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(BlueprintReadOnly)
 	FText SkillName = FText::GetEmpty();
 	
-	TUniquePtr<FGameplayAbilitySpec> Spec;
+	UPROPERTY(BlueprintReadOnly)
+	TSubclassOf<USkillComponentBase> SkillClass;
 	
 	FSkillInfo();
 	
-	FSkillInfo(const TSubclassOf<UGameplayAbility>&  Ability);
+	FSkillInfo(const TSubclassOf<USkillComponentBase>& Comp);
 	
 	FSkillInfo& operator=(const FOperatorSkillInfo& Info);
 
 	FSkillInfo& operator=(const FSkillInfo& Info);
-
-	virtual ~FSkillInfo() override;
 };
 /**
  *	用于管理当局内的所有技能

@@ -6,6 +6,7 @@
 #include "ArkWars/ArkWars.h"
 #include "ArkWars/Battle/Core/BattleGameState.h"
 #include "ArkWars/Battle/System/BattleGameFlowSubsystem.h"
+#include "ArkWars/Battle/Toolkits/ArkWarGlobal.h"
 #include "ArkWars/Battle/Toolkits/ArkWarTags.h"
 #include "ArkWars/Battle/Toolkits/BattleFunctionLibrary.h"
 #include "GameFramework/GameStateBase.h"
@@ -116,7 +117,7 @@ void UGameModeComponentBase::ChangeGamePhase(const FString& Msg)
 	
 	auto CurPhase = static_cast<int32>(GS->GetPhase()) - 1;
 	
-	auto TarPhase = CurPhase % 4 + 1;
+	auto TarPhase = CurPhase % GamePhase::GamePhaseToTagMap.Num() + 1;
 	GS->SetPhase(static_cast<EGamePhase>(TarPhase));
 	
 }

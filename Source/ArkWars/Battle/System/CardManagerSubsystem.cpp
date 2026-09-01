@@ -61,14 +61,14 @@ void UCardManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		[&Map = InfoMapping](const FName& Key, const FHandCardInfo& Row)->void
 		{
 			check(!Map.Contains(Row.CardTag))
-			Map.Add(Row.CardTag) = Row;
+			*Map.Add(Row.CardTag) = Row;
 		});
 	
 	CardData->ForeachRow<FCardComponentMapping>(TEXT("[UCardManagerSubsystem][Initialize][Component]"),
 	[&Map = InfoMapping](const FName& Key, const FCardComponentMapping& Row)->void
 	{
 		if (Row.Comp && Row.Comp->GetDefaultObject()->IsA(UCardComponentBase::StaticClass()) && Map.Contains(Row.Tag))
-			Map.Find(Row.Tag)->Class = Row.Comp;
+			(*Map.Find(Row.Tag))->Class = Row.Comp;
 	});
 }
 
@@ -96,20 +96,24 @@ namespace
 	}
 }
 
-FCardInfo UCardManagerSubsystem::GetCardInfoByTag(const FGameplayTag& Tag)
+bool UCardManagerSubsystem::GetCardInfoByTag(const FGameplayTag& Tag, TSharedPtr<FCardInfo>& OutInfo)
 {
 	if (InfoMapping.Contains(Tag))
-		return InfoMapping[Tag];
+	{
+		OutInfo = *InfoMapping.Find(Tag);
+		return true;
+
+	}
 	
 	Check(TEXT("GetCardInfoByTag"),Tag);
-	return FCardInfo();
+	return false;
 }
 
 FGameplayTag UCardManagerSubsystem::GetCardType(const FGameplayTag& Tag)
 {
 	if (InfoMapping.Contains(Tag))
 	{
-		for (const auto& EachTag : InfoMapping[Tag].CardTags)
+		for (const auto& EachTag : InfoMapping[Tag]->CardTags)
 		{
 			if (EachTag.MatchesTag(CardTags::Type()))
 			{

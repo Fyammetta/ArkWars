@@ -3,6 +3,7 @@
 #include "GameplayTagContainer.h"
 #include "ArkwarTypes.generated.h"
 
+class USkillComponentBase;
 class UGameplayAbility;
 class UCardComponentBase;
 using FCard = TSharedPtr<FGameplayTagContainer>;
@@ -141,17 +142,17 @@ struct FCardComponentMapping : public FTableRowBase
 {
 	GENERATED_BODY()
 
-	/// 技能Tag
+	/// 卡牌Tag
 	UPROPERTY(EditAnywhere)
 	FGameplayTag Tag;
 	
-	/// 技能类
+	/// 卡牌组件类
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UCardComponentBase> Comp;
 };
 
 USTRUCT(BlueprintType)
-struct FSkillAbilityMapping : public FTableRowBase
+struct FSkillComponentMapping : public FTableRowBase
 {
 	GENERATED_BODY()
 
@@ -159,9 +160,9 @@ struct FSkillAbilityMapping : public FTableRowBase
 	UPROPERTY(EditAnywhere)
 	FGameplayTag Tag;
 	
-	/// 技能类
+	/// 技能组件类
 	UPROPERTY(EditAnywhere)
-	TSubclassOf<UGameplayAbility> Ability;
+	TSubclassOf<USkillComponentBase> Comp;
 };
 
 USTRUCT(BlueprintType)
@@ -211,9 +212,70 @@ struct FInfoWithData
 UENUM(BlueprintType)
 enum class EGamePhase: uint8
 {
-		None = 0,
-		Judgment,			// 判定阶段
-		Preparation,		// 准备阶段
-		Action,				// 行动阶段
+		GameStart = 0,
+		Begin,				// 回合开始阶段
+		Preparation_Pre,	// 准备阶段前
+		Preparation,		// 准备阶段开始
+		Preparation_Post,	// 准备阶段结束
+		Judgment_Pre,		// 判定阶段前
+		Judgment,			// 判定阶段开始
+		Judgment_Post,		// 判定阶段结束
+		Draw_Pre,			// 摸牌阶段前
+		Draw,				// 摸牌阶段开始
+		Draw_Post,			// 摸牌阶段结束
+		Action_Pre,			// 行动阶段前
+		Action,				// 行动阶段开始
+		Action_Post,		// 行动阶段结束
+		Discard_Pre,		// 弃牌阶段前
+		Discard,			// 弃牌阶段开始
+		Discard_Post,		// 弃牌阶段结束
 		Finish				// 结束阶段
 };
+
+USTRUCT(BlueprintType)
+struct FCardAreaSlot
+{
+	GENERATED_BODY()
+	
+	friend class FCardAreaSlotFactory;
+protected:
+	UPROPERTY(BlueprintReadOnly)
+	FGameplayTag Area;
+	
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FGameplayTagContainer> Cards;
+	
+	UPROPERTY(BlueprintReadOnly)
+	int32 Capacity;
+	
+	FCardAreaSlot(const FGameplayTag& Key) : Area(Key), Cards({}), Capacity(1) {};
+	
+public:
+	FCardAreaSlot() : Area({}), Cards({}), Capacity(0) {};
+
+	
+	
+	int32 Num() const {return Cards.Num();}
+	
+	bool IsFull() const { return Capacity <= Num(); }
+	
+	bool IsEmpty() const { return Num() == 0; }
+	
+	bool Add(const FGameplayTagContainer& Card) { if (IsFull()) return false; return Cards.Add(Card) != INDEX_NONE; };
+	
+	bool Remove(const FGameplayTagContainer& Card) { return Cards.Remove(Card) != INDEX_NONE; };
+	
+	const TArray<FGameplayTagContainer>& GetAll() const { return Cards; }
+	
+	const FGameplayTag& GetAreaKey() const { return Area; }
+};
+
+class FCardAreaSlotFactory
+{
+	static FCardAreaSlot CreateEquipmentSlot(const FGameplayTag& Key);
+	
+	static FCardAreaSlot CreateJudgementSlot(const FGameplayTagContainer& Card);
+	
+	static FCardAreaSlot CreateSpecialSlot(const FGameplayTag& Key, int32 Capacity);
+};
+
