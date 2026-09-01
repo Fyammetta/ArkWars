@@ -15,16 +15,20 @@
 #endif
 
 #ifndef SKILL
-	#define OPERATOR(Operator,Index)	FGameplayTag::RequestGameplayTag("Skill."#Operator"."#Index)
+	#define SKILL(Operator,Index)	FGameplayTag::RequestGameplayTag("Skill."#Operator"."#Index)
 #endif
 
 #ifndef CARD
-	#define  CARD(Card)	FGameplayTag::RequestGameplayTag("Card.Class"#Card)
+	#define  CARD(Card)	FGameplayTag::RequestGameplayTag("Card.Class."#Card)
 #endif
 
-
-
 #pragma  endregion
+
+namespace SkillTags
+{
+	REGISTER_TAG(Root, Skill)
+}
+
 
 namespace CardTags
 {

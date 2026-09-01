@@ -4,38 +4,10 @@
 #include "CardManagerSubsystem.h"
 
 #include "ArkWars/ArkWars.h"
-#include "ArkWars/Battle/Component/HandCard/CardComponentBase.h"
+#include "ArkWars/Battle/Component/Card/CardComponentBase.h"
 #include "ArkWars/Battle/Toolkits/ArkWarTags.h"
 #include "ArkWars/Battle/Toolkits/ArkWarTypes.h"
 #include "ArkWars/Settings/BattleCardSettings.h"
-
-TArray<FFormatArgumentData> FCardInfo::GetNumericalDatas()
-{
-	TArray<FFormatArgumentData> RetVal;
-	FFormatArgumentData Arg;
-
-	for (const FString& String : Data)
-	{
-		Arg.ArgumentName = FString::Printf(TEXT("{%d}"), Data.Find(String));
-		Arg.ArgumentValueType = EFormatArgumentType::Int;
-		if (String.IsNumeric())
-		{
-			Arg.ArgumentValueInt = FCString::Atoi64(*String);
-		}
-		else if (DataGetter.IsBound())
-		{
-			Arg.ArgumentValueInt = DataGetter.Execute(String);
-		}
-		else
-		{
-			Arg.ArgumentValueInt = 0;
-		}
-		
-		RetVal.Add(MoveTemp(Arg));
-	}
-	
-	return RetVal;
-}
 
 FCardInfo& FCardInfo::operator=(const FCardInfo& Other)
 {
@@ -92,8 +64,8 @@ void UCardManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 			Map.Add(Row.CardTag) = Row;
 		});
 	
-	CardData->ForeachRow<FCardCompMapping>(TEXT("[UCardManagerSubsystem][Initialize][Component]"),
-	[&Map = InfoMapping](const FName& Key, const FCardCompMapping& Row)->void
+	CardData->ForeachRow<FCardComponentMapping>(TEXT("[UCardManagerSubsystem][Initialize][Component]"),
+	[&Map = InfoMapping](const FName& Key, const FCardComponentMapping& Row)->void
 	{
 		if (Row.Comp && Row.Comp->GetDefaultObject()->IsA(UCardComponentBase::StaticClass()) && Map.Contains(Row.Tag))
 			Map.Find(Row.Tag)->Class = Row.Comp;

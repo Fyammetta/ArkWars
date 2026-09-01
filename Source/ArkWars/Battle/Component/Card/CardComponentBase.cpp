@@ -30,6 +30,11 @@ namespace
 }
 
 
+UCardComponentBase::UCardComponentBase()
+{
+	SetIsReplicatedByDefault(true);
+}
+
 UCardComponentBase* UCardComponentBase::Get(AActor* Owner, const FGameplayTag& CardTag, bool ForceCreate)
 {
 	if (auto Component = Owner->FindComponentByTag(StaticClass(), CardTag.GetTagName()))
@@ -149,12 +154,7 @@ void UCardComponentBase::Response(AActor* Target, const FCard& Card)
 {
 }
 
-
-void UCardComponentBase::MoveIn(ICardContainerInterface* From, TArray<TSharedPtr<FCard>>&& Cards)
-{
-}
-
-void UCardComponentBase::Use(const TArray<AActor*>& Target, TSharedPtr<FGameplayTagContainer> Card)
+void UCardComponentBase::Use(const TArray<AActor*>& Targets, TSharedPtr<FGameplayTagContainer> Card)
 {
 }
 
