@@ -17,7 +17,7 @@
  *	除开储存指定种类的卡牌，组件还持有被转化/视为种类卡牌的其他卡牌的弱引用
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Abstract)
-class ARKWARS_API UCardComponentBase : public UActorComponent, public ICardContainerInterface
+class ARKWARS_API UCardComponentBase : public UActorComponent
 {
 	GENERATED_BODY()
 	///	卡牌容器，该容器会存放主标签精准匹配该卡牌种类标签的所有卡牌
@@ -29,6 +29,7 @@ class ARKWARS_API UCardComponentBase : public UActorComponent, public ICardConta
 	///卡牌信息，储存常规状态下该类卡牌的共有信息，如卡牌种类标签、卡牌类型标签，当前类的类型等
 	TUniquePtr<FCardInfo> Info;
 public:
+	UCardComponentBase();
 	/**
 	 *	给玩家添加手牌等需要获取卡牌组件时调用
 	 *	@param Owner				组件的持有者，通常应该为玩家
@@ -113,8 +114,6 @@ public:
 	virtual bool TrySelectTarget(AActor* Target) {return false;};
 	
 protected:
-	virtual void MoveIn(ICardContainerInterface* From, TArray<TSharedPtr<FCard>>&& Cards) override;
-	
 	virtual int32 DataConverter(const FString& Data) { return 0; };
 
 };

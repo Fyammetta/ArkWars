@@ -3,7 +3,11 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
+#include "ArkWars/ArkWars.h"
+#include "ArkWars/Battle/Core/BattleGameState.h"
+#include "ArkWars/Battle/System/BattleGameFlowSubsystem.h"
 #include "ArkWars/Battle/Toolkits/ArkWarTags.h"
+#include "ArkWars/Battle/Toolkits/BattleFunctionLibrary.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 
@@ -31,57 +35,64 @@ namespace
 	}
 }
 
-FChangePhaseDelegate& UGameModeComponentBase::GetPhaseChangeDelegate(EGamePhase::Type Phase, FChangePhaseDelegatePair::Type Timing)
-{
-	return PhaseDelegates[Phase].Get(Timing);
-}
-
-UGameModeComponentBase::UGameModeComponentBase()
-{
-	PhaseDelegates.Init(FChangePhaseDelegatePair(),4);
-}
-
 void UGameModeComponentBase::InitCardDeck()
 {
 }
 
 void UGameModeComponentBase::AllocateIdentity()
 {
-	TArray<APlayerState*> TempPlayers;
+	//获取所有玩家，顺序按照GameState中的玩家数组顺序，以服务器中的数组为准
+	TArray<APlayerState*> AllPlayers;
 	{
 		auto World = GetWorld();
 		if (!World) return;
 		auto GameState = World->GetGameState();
 		if (!GameState) return;
-		Players = GameState->PlayerArray;
-		TempPlayers = Players;
-		if (Players.IsEmpty()) return;
+		AllPlayers = GameState->PlayerArray;
+		if (AllPlayers.IsEmpty()) return;
 	}
-	TArray<FGameplayTag> Identities = GetDesignedIdentity(Players.Num());
 	
-	APlayerState* CommanderPlayer = nullptr;
-	while (!TempPlayers.IsEmpty())
+	//分配身份，当前设计末位（首个出栈的Tag)为主公
+	TArray<FGameplayTag> Identities = GetDesignedIdentity(AllPlayers.Num());
+	
+	auto Identity = Identities.Pop();
+	auto Start = FMath::RandRange(0, AllPlayers.Num() - 1);
+	
+	//Start为当局的起始位，并通过身份数组的结构约束为主公
+	if (auto Subsystem = UBattleFunctionLibrary::GetBattleManager(this))
+	{
+		Subsystem->InitPlayerOrder(Start);
+	}
 	{
 		UAbilitySystemComponent* Comp = nullptr;
+		//逐个分配身份直到身份分配数组无残留元素
+		while (true)
 		{
-			auto Target = Players[FMath::RandRange(0, Players.Num() - 1)];
-			if (!CommanderPlayer) CommanderPlayer = Target;
-			Players.Remove(Target);
-			if (auto Interface = Cast<IAbilitySystemInterface>(Target))
-			Comp = Interface->GetAbilitySystemComponent();
-			if (!Comp) return;
-		}
-		
-		Comp->AddLooseGameplayTag(Identities.Pop());
-	}
-	
-	check(CommanderPlayer);
-	
-	ActorIndex = Players.Find(CommanderPlayer);
+			if (auto Target = AllPlayers[(Start++)%AllPlayers.Num()])
+			{
+				if (auto Interface = Cast<IAbilitySystemInterface>(Target))
+					Comp = Interface->GetAbilitySystemComponent();
+				if (!Comp)
+				{
+					UE_LOG(LogGamePlay, Warning, TEXT("[UGameModeComponentBase][AllocateIdentity] Player: %s do not own AbilitySystemComponent"),*Target->GetName())
+					return;
+				}
+			}
+			else
+			{
+				UE_LOG(LogGamePlay, Warning, TEXT("[UGameModeComponentBase][AllocateIdentity] Found a player do not exist"))
+				return;
+			}
+			//先添加身份，然后将下一个出栈的元素设为随机，保持出栈性能的同时不使得顺序死板
+			Comp->AddLooseGameplayTag(Identity);
+			UE_LOG(LogGamePlay, Log, TEXT("[UGameModeComponentBase][AllocateIdentity] Allocate identity %s to layer: %s"),*Identity.ToString(), *Comp->GetOwner()->GetName())
 
-	for (int i = ActorIndex; i < ActorIndex + Players.Num(); ++i)
-	{
-		RequestCard(Players[i%Players.Num()],TEXT("[Num]=4"));
+			if (Identities.IsEmpty()) return;
+			
+			auto Lasting = Identities.Num();
+			Identities.Swap(Lasting - 1, FMath::RandRange(0, Lasting - 1));
+			Identity = Identities.Pop();
+		}
 	}
 }
 
@@ -96,22 +107,22 @@ void UGameModeComponentBase::RequestCard(APlayerState* Player, const FString& Ms
 
 void UGameModeComponentBase::Discard(APlayerState* Player, const TArray<FGameplayTagContainer>& Cards, const FString& Msg)
 {
-	DiscardCache.Append(Cards);
 }
 
 void UGameModeComponentBase::ChangeGamePhase(const FString& Msg)
 {
-	EGamePhase::Roll(CurrentPhase);
-}
-
-APlayerState* UGameModeComponentBase::GetStageOwner() const
-{
-	return Players[ActorIndex];
+	auto GS = GetWorld()->GetGameState<ABattleGameState>();
+	if (!GS) return;
+	
+	auto CurPhase = static_cast<int32>(GS->GetPhase()) - 1;
+	
+	auto TarPhase = CurPhase % 4 + 1;
+	GS->SetPhase(static_cast<EGamePhase>(TarPhase));
+	
 }
 
 void UGameModeComponentBase::BroadcastCardToPlayer(APlayerState* Player, const TArray<FGameplayTagContainer>& Cards)
 {
-	
 }
 
 void UGameModeComponentBase::ClearDiscardCache()

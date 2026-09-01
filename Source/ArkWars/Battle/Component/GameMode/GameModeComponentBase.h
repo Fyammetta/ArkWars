@@ -7,38 +7,11 @@
 #include "Components/ActorComponent.h"
 #include "GameModeComponentBase.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FChangePhaseDelegate);
-
-class FChangePhaseDelegatePair
-{
-	FChangePhaseDelegate Delegates[3];
-public:
-	enum Type { PreBegin, PostBegin, End};
-	
-	FChangePhaseDelegate& Get(Type T){ return Delegates[T]; }
-};
-
 UCLASS(Abstract ,ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class ARKWARS_API UGameModeComponentBase : public UActorComponent
 {
 	GENERATED_BODY()
-	
-	TArray<FGameplayTagContainer> DiscardCache;
-	
-	UPROPERTY()
-	TArray<APlayerState*> Players;
-	
-	int32 ActorIndex;
-	
-	EGamePhase::Type CurrentPhase;
-	
-	TArray<FChangePhaseDelegatePair> PhaseDelegates;
 public:
-	
-	FChangePhaseDelegate& GetPhaseChangeDelegate(EGamePhase::Type Phase, FChangePhaseDelegatePair::Type Timing);
-	
-	UGameModeComponentBase();
-	
 	/**	开始游戏时，根据玩法配置Subsystem中的牌堆 */
 	UFUNCTION(BlueprintCallable)
 	virtual void InitCardDeck();
@@ -71,9 +44,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable)
 	virtual void ChangeGamePhase(const FString& Msg);
-	
-	UFUNCTION(BlueprintCallable)
-	APlayerState* GetStageOwner() const;
 	
 	
 private:
