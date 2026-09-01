@@ -17,9 +17,9 @@ class ARKWARS_API ABattleGameState : public AGameStateBase
 	GENERATED_BODY()
 	
 	UPROPERTY(ReplicatedUsing=OnRep_Phase)
-	EGamePhase CurrentPhase = EGamePhase::None;
+	EGamePhase CurrentPhase = EGamePhase::GameStart;
 	UPROPERTY(Replicated)
-	EGamePhase CachedPhase = EGamePhase::None;
+	EGamePhase CachedPhase = EGamePhase::GameStart;
 	
 		
 		

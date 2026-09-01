@@ -35,12 +35,12 @@ public:
 	 *	选中卡牌,单次选中一张，可累加
 	 *	@param Card		单次选中的卡牌
 	 */
-	void TrySelectCard(const FCard& Card) const;
+	void TrySelectCard(const FGameplayTagContainer& Card) const;
 	/**
 	 *	主动使用卡牌
 	 *	@param Card		待使用的卡牌
 	 */
-	void TryUseCard(const FCard& Card);
+	void TryUseCard(const FGameplayTagContainer& Card);
 	/**
 	 *	移动卡牌，可定义来源与去向，装备置入、弃牌等操作均由此触发
 	 *	@param Card		待移动的卡牌
@@ -55,12 +55,12 @@ public:
 	 *	@param Source	需要响应的卡牌
 	 *	@param Card		用于响应的卡牌
 	 */
-	void TryResponse(APlayerState* Target, const FGameplayTagContainer& Source, const FCard& Card);
+	void TryResponse(APlayerState* Target, const FGameplayTagContainer& Source, const FGameplayTagContainer& Card);
 	/**
 	 *	展示多张卡牌
 	 *	@param Cards	待展示的卡牌
 	 */
-	void TryShowCard(const TArray<FCard>& Cards);
+	void TryShowCard(const TArray<FGameplayTagContainer>& Cards);
 	/**
 	 *	对多名目标发起拼点
 	 *	@param Targets	拼点的目标

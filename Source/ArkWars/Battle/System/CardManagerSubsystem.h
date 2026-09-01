@@ -48,12 +48,10 @@ class ARKWARS_API UCardManagerSubsystem : public UGameInstanceSubsystem
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override {return true;};
 	virtual void Deinitialize() override;
 	
-	TMap<FGameplayTag, FCardInfo> InfoMapping;
+	TMap<FGameplayTag, TSharedPtr<FCardInfo>> InfoMapping;
 	
 public:
-	UFUNCTION(BlueprintCallable)
-	FCardInfo GetCardInfoByTag(const FGameplayTag& Tag);
+	bool GetCardInfoByTag(const FGameplayTag& Tag, TSharedPtr<FCardInfo>& OutInfo);
 	
-	UFUNCTION(BlueprintCallable)
 	FGameplayTag GetCardType(const FGameplayTag& Tag);
 };

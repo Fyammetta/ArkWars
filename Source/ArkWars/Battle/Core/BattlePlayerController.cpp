@@ -10,7 +10,7 @@ void ABattlePlayerController::TryEndPhase()
 {
 }
 
-void ABattlePlayerController::TrySelectCard(const FCard& Card) const
+void ABattlePlayerController::TrySelectCard(const FGameplayTagContainer& Card) const
 {
 	auto PS = GetPlayerState<AActor>();
 	if (!PS)
@@ -25,7 +25,7 @@ void ABattlePlayerController::TrySelectCard(const FCard& Card) const
 	Comp->SelectCard(Card);
 }
 
-void ABattlePlayerController::TryUseCard(const FCard& Card)
+void ABattlePlayerController::TryUseCard(const FGameplayTagContainer& Card)
 {
 	auto PS = GetPlayerState<AActor>();
 	if (!PS)
@@ -55,7 +55,7 @@ void ABattlePlayerController::TryMoveCard(const TArray<FGameplayTagContainer>& C
 	Server_MoveCard(Cards ,FromObj, ToObj, Msg);
 }
 
-void ABattlePlayerController::TryResponse(APlayerState* Target, const FGameplayTagContainer& Source, const FCard& Card)
+void ABattlePlayerController::TryResponse(APlayerState* Target, const FGameplayTagContainer& Source, const FGameplayTagContainer& Card)
 {
 	auto PS = GetPlayerState<AActor>();
 	if (!PS)
@@ -73,7 +73,7 @@ void ABattlePlayerController::TryResponse(APlayerState* Target, const FGameplayT
 	Server_Response(Target, Source, Index);
 }
 
-void ABattlePlayerController::TryShowCard(const TArray<FCard>& Cards)
+void ABattlePlayerController::TryShowCard(const TArray<FGameplayTagContainer>& Cards)
 {
 	if (Cards.IsEmpty())
 	{
@@ -91,8 +91,9 @@ void ABattlePlayerController::TryShowCard(const TArray<FCard>& Cards)
 	}
 
 	TArray<int32> IndexArray{};
-	auto CachedCards = Comp->GetAllHandCard();
-	for (FCard C : Cards)
+	TArray<FGameplayTagContainer> CachedCards {};
+	Comp->GetCards(CachedCards);
+	for (const FGameplayTagContainer& C : Cards)
 	{
 		auto Index = CachedCards.Find(C);
 		if (Index != INDEX_NONE)
@@ -140,9 +141,6 @@ void ABattlePlayerController::Server_UseCard_Implementation(int32 Index)
 	{
 		return;
 	}
-	
-	Comp->UseCard(Index);
-	
 }
 
 void ABattlePlayerController::Server_MoveCard_Implementation(const TArray<FGameplayTagContainer>& Cards,
