@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ArkWars/Battle/System/CardManagerSubsystem.h"
 #include "ArkWars/Battle/Toolkits/ArkWarTypes.h"
 #include "Components/ActorComponent.h"
 #include "ArkWars/Battle/Toolkits/CardContainerInterface.h"
@@ -12,33 +11,37 @@
 /**
  *	抽象类，只允许创建子类的实例
  *	
- *	设计附加到PlayerState上的组件，用于储存该玩家具有的所有特定种类的卡牌
+ *	设计附加到CardManagerSubsystem上的组件，用于已出现过的所有的特定种类的卡牌
  *	
- *	除开储存指定种类的卡牌，组件还持有被转化/视为种类卡牌的其他卡牌的弱引用
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Abstract)
-class ARKWARS_API UCardComponentBase : public UActorComponent
+class ARKWARS_API UCardComponentBase : public UObject
 {
 	GENERATED_BODY()
-	UPROPERTY(Replicated)
+	
 	FGameplayTag Key;
 public:
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-	
-	UCardComponentBase();
+	virtual ~UCardComponentBase();
 	/**
 	 *	添加手牌等需要获取卡牌组件时调用
-	 *	@param Owner				组件的持有者
+	 *	@param WorldContextObject	用于确认当前世界的对象
 	 *	@param Tag					卡牌的种类所对应的Tag
 	 */
-	static UCardComponentBase* Get(AActor* Owner, const FGameplayTag& Tag);
+	static UCardComponentBase* Get(const UObject* WorldContextObject, const FGameplayTag& Tag);
+	
+	/**
+	 *	添加手牌等需要获取卡牌组件时调用
+	 *	@param WorldContextObject	用于确认当前世界的对象
+	 *	@param Card					特定的卡牌，用于获取对应的Tag，优先以视为/转化的目标为键
+	 */
+	static UCardComponentBase* Get(const UObject* WorldContextObject, const FGameplayTagContainer& Card);
 	/**
 	 *	需要使用卡牌时调用, 可以指定多个目标, 逻辑由子类提供
 	 *	@param Source				卡牌的使用者
 	 *	@param Targets				卡牌的目标(若需要)
 	 *	@param Card					被选中使用的卡牌，通常需要来源于该组件(Cards/ConvertedCards)或为“视为”等，否则无法使用
 	 */
-	virtual void Use(AActor* Source, const TArray<AActor*>& Targets, const FGameplayTagContainer& Card);
+	virtual void Use(APlayerState* Source, const TArray<APlayerState*>& Targets, const FGameplayTagContainer& Card);
 	
 	/**
 	 *	将卡牌移出手牌时调用，可以移动至牌堆、本人的其他区域、他人的区域等
@@ -54,7 +57,7 @@ public:
 	 *	@param Target				需要响应的目标
 	 *	@param Card					需要响应的目标牌
 	 */
-	virtual void Response(AActor* Source, AActor* Target, const FGameplayTagContainer& Card);
+	virtual void Response(APlayerState* Source, APlayerState* Target, const FGameplayTagContainer& Card);
 
 	/**
 	 *	当卡牌选中后，需要选中目标时调用，用于判断目标是否可以被选中
@@ -62,7 +65,7 @@ public:
 	 *	@param Target				需要判断是否可以被选中的目标
 	 *	@return						若返回真，则该目标可以被选中
 	 */
-	virtual bool TrySelectTarget(AActor* Source, AActor* Target) {return false;};
+	virtual bool TrySelectTarget(APlayerState* Source, APlayerState* Target) {return false;};
 	
 protected:
 	virtual int32 DataConverter(const FString& Data) { return 0; };

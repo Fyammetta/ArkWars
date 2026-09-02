@@ -48,10 +48,11 @@ namespace CardTags
 		{
 			static_assert(Cond, "TIsLegalPoint: Point is illegal");
 		};
-		template<wchar_t T>
+		template<typename FString::ElementType T>
 		struct TIsLegalPoint<T,true>
 		{
 			constexpr static typename FString::ElementType Value = T;
+			constexpr static int32 Point = T == 'K' ? 13 : T == 'Q' ? 12 : T == 'J' ? 11 : T == 'X' ? 10 : T == 'A' ? 1 : static_cast<int>(T) - static_cast<int>('0');
 		};
 	}
 	
@@ -60,11 +61,17 @@ namespace CardTags
 	{
 		static FGameplayTag Point_V = 
 			FGameplayTag::RequestGameplayTag(FName(FString::Printf(TEXT("Card.Point.%c"),
-				CardPoint::TIsLegalPoint<T, T == 'K' || T == 'Q' || T == 'J' || T == 'A' || (static_cast<int>(T) >=2 && static_cast<int>(T)<=10) >::Value)));
+				CardPoint::TIsLegalPoint<T, T == 'K' || T == 'Q' || T == 'J' || T == 'A' || T == 'X' || (static_cast<int>(T) - static_cast<int>('0') >=2 && static_cast<int>(T) - static_cast<int>('0')<=9) >::Value)));
 		return Point_V;
 	}
 
-	
+	REGISTER_TAG(Pile, Card.Area.Pile)
+	REGISTER_TAG(Discard, Card.Area.Discard)
+	REGISTER_TAG(Hand, Card.Area.Hand)
+	REGISTER_TAG(Judgement, Card.Area.Judgement)
+	REGISTER_TAG(Equipment, Card.Area.Equipment)
+	REGISTER_TAG(Cache, Card.Area.Cache)
+	REGISTER_TAG(Used, Card.Area.Used)
 }
 
 namespace GameModeTags

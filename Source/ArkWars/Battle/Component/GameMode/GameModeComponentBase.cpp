@@ -97,19 +97,6 @@ void UGameModeComponentBase::AllocateIdentity()
 	}
 }
 
-void UGameModeComponentBase::RequestCard(APlayerState* Player, const FString& Msg)
-{
-	TArray<FGameplayTagContainer> Cards;
-	//TODO: 解析Msg，根据需求填入卡牌
-	
-	
-	BroadcastCardToPlayer(Player, Cards);
-}
-
-void UGameModeComponentBase::Discard(APlayerState* Player, const TArray<FGameplayTagContainer>& Cards, const FString& Msg)
-{
-}
-
 void UGameModeComponentBase::ChangeGamePhase(const FString& Msg)
 {
 	auto GS = GetWorld()->GetGameState<ABattleGameState>();

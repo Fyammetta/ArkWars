@@ -9,8 +9,9 @@
 #include "Components/ActorComponent.h"
 #include "CardManagementBusComponent.generated.h"
 
-
-
+/**
+ * 	设计附加到PlayerState上的组件，用于储存该玩家具有的所有卡牌及区域
+ */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class ARKWARS_API UCardManagementBusComponent : public UActorComponent, public ICardContainerInterface
 {
@@ -42,7 +43,7 @@ public:
 	
 	void SelectTarget(APlayerState* Target);
 	void ClearTargetsSelection(APlayerState* Target);
-	TArray<TWeakObjectPtr<APlayerState>> GetSelectedTargets();
+	TArray<APlayerState*> GetSelectedTargets();
 	
 	bool CanPutInJudgement(const FGameplayTagContainer& Card) const;
 	
@@ -50,7 +51,7 @@ public:
 	
 	virtual void MoveIn(ICardContainerInterface* From, TArray<FGameplayTagContainer>&& Cards, const FString& Msg) override;
 	
-	virtual void MoveOut(ICardContainerInterface* To, TArray<FGameplayTagContainer>&& Cards, const FString& Msg) override;
+	virtual void MoveOut(ICardContainerInterface* To, const TArray<FGameplayTagContainer>& Cards, const FString& Msg) override;
 	
 	
 	///Filter

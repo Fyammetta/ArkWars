@@ -5,5 +5,5 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FGamePhaseChangeDelegate, const FGameplayTa
 DECLARE_MULTICAST_DELEGATE_OneParam(FActivePlayerChangeDelegate, APlayerState* /* ActivePlayer */);
 
 
-DECLARE_MULTICAST_DELEGATE_TwoParams(FPlayerSelectionChangeDelegate, TArray<TWeakObjectPtr<APlayerState>> /* Players */, bool /* bLostSelection */);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FPlayerSelectionChangeDelegate, const TArray<APlayerState*>& /* Players */, bool /* bLostSelection */);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FCardSelectionChangeDelegate, TArray<FGameplayTagContainer> /* Cards */, bool/* bLostSelection */);

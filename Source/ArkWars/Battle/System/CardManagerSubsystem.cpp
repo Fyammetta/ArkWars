@@ -109,6 +109,17 @@ bool UCardManagerSubsystem::GetCardInfoByTag(const FGameplayTag& Tag, TSharedPtr
 	return false;
 }
 
+UCardComponentBase* UCardManagerSubsystem::GetCardComponentByTag(const FGameplayTag& Tag)
+{
+	TSharedPtr<FCardInfo> Ptr = nullptr;
+	if (GetCardInfoByTag(Tag, Ptr))
+	{
+		return Ptr->Card;
+	}
+	
+	return nullptr;
+}
+
 FGameplayTag UCardManagerSubsystem::GetCardType(const FGameplayTag& Tag)
 {
 	if (InfoMapping.Contains(Tag))

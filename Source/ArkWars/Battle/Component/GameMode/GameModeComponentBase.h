@@ -20,25 +20,8 @@ public:
 	/**	开始游戏时，根据玩法和人数为玩家分配身份 */
 	UFUNCTION(BlueprintCallable)
 	virtual void AllocateIdentity();
-	
-	/**	供特定玩家请求卡牌, 只进行服务器端的卡牌消耗，不负责分配到特定玩家
-	 *	
-	 *	@param Player	请求者的玩家控制器，用于区分请求的来源，不代表获得者
-	 *	@param Msg		通过Msg传入具体的需求例如 "[Num]=2" 则为请求两张
-	 */
-	UFUNCTION(BlueprintCallable)
-	virtual void RequestCard(APlayerState* Player, const FString& Msg);
-	
-	/**	供特定玩家弃牌，仅将牌弃至缓冲区，阶段结束后才会真正弃置
-	 *	
-	 *	@param Player	弃牌者的玩家控制器
-	 *	@param Cards	被舍弃的牌
-	 *	@param Msg		通过Msg传入具体的弃牌情况例如 "[End]" 则回合结束弃牌
-	 */
-	UFUNCTION(BlueprintCallable)
-	virtual void Discard(APlayerState* Player, const TArray<FGameplayTagContainer>& Cards, const FString& Msg);
-	
-	/**	供特定玩家弃牌，仅将牌弃至缓冲区，阶段结束后才会真正弃置
+
+	/**	用于切换状态，若Msg为空时按默认形式切换
 	 *	
 	 *	@param Msg		需要切换为特定阶段等需求时传入Msg实现
 	 */

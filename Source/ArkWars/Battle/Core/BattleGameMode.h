@@ -11,7 +11,7 @@ struct FGameplayTag;
  * 
  */
 UCLASS()
-class ARKWARS_API ABattleGameMode : public AGameMode
+class ARKWARS_API ABattleGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 	

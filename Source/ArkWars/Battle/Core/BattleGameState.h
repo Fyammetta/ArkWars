@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "ArkWars/Battle/Toolkits/ArkWarDelegates.h"
 #include "ArkWars/Battle/Toolkits/ArkWarTypes.h"
-#include "GameFramework/GameStateBase.h"
+#include "GameFramework/GameState.h"
 #include "BattleGameState.generated.h"
 
 /**
@@ -40,6 +40,7 @@ public:
 	
 	void SetNextPlayerActive();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 private:	
 	UFUNCTION()
 	void OnRep_Phase() const;

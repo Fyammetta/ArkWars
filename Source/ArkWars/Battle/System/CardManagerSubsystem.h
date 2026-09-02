@@ -25,7 +25,10 @@ struct FCardInfo : public FInfoWithData
 	UPROPERTY(BlueprintReadOnly)
 	TSubclassOf<UCardComponentBase> Class;
 	
-	FCardInfo() : Class(nullptr) {};
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UCardComponentBase> Card;
+	
+	FCardInfo() : Class(nullptr), Card(nullptr) {};
 	
 	FCardInfo& operator=(const FCardInfo& Other);
 	FCardInfo& operator=(const FHandCardInfo& Info);
@@ -52,6 +55,8 @@ class ARKWARS_API UCardManagerSubsystem : public UGameInstanceSubsystem
 	
 public:
 	bool GetCardInfoByTag(const FGameplayTag& Tag, TSharedPtr<FCardInfo>& OutInfo);
+	
+	UCardComponentBase* GetCardComponentByTag(const FGameplayTag& Tag);
 	
 	FGameplayTag GetCardType(const FGameplayTag& Tag);
 };

@@ -12,12 +12,16 @@ struct FGameplayTagContainer;
  * 
  */
 UCLASS()
-class ARKWARS_API UCardPileManagerSubsystem : public UWorldSubsystem
+class ARKWARS_API UCardPileManagerSubsystem : public UWorldSubsystem, public ICardContainerInterface
 {
 	GENERATED_BODY()
 	TArray<FGameplayTagContainer> DiscardCache;
 	TArray<FGameplayTagContainer> Discard;
 	TArray<FGameplayTagContainer> DrawCardsPile;
 	
+	
+	virtual void MoveIn(ICardContainerInterface* From, TArray<FGameplayTagContainer>&& Cards, const FString& Msg) override;
+	
+	virtual void MoveOut(ICardContainerInterface* To, const TArray<FGameplayTagContainer>& Cards, const FString& Msg) override;
 
 };

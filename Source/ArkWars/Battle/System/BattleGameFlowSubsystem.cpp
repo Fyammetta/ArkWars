@@ -31,3 +31,14 @@ void UBattleGameFlowSubsystem::Deinitialize()
 void UBattleGameFlowSubsystem::InitPlayerOrder(int32 StartIndex)
 {
 }
+
+void UBattleGameFlowSubsystem::RegisterManagerActor(AActor* Actor)
+{
+	if (Actor && !ManagerActor)
+		ManagerActor = Actor;
+}
+
+AActor* UBattleGameFlowSubsystem::GetManagerActor() const
+{
+	return ManagerActor;
+}

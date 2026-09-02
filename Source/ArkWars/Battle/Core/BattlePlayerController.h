@@ -90,16 +90,16 @@ private:
 	///===================== RPC =====================
 
 	UFUNCTION(Server, Reliable)
-	void Server_UseCard(int32 Index);
+	void Server_UseCard(APlayerState* Source, const TArray<APlayerState*>& Targets, const FGameplayTagContainer& Card);
 	
 	UFUNCTION(Server, Reliable)
 	void Server_MoveCard(const TArray<FGameplayTagContainer>& Cards, const TScriptInterface<ICardContainerInterface>& From, const TScriptInterface<ICardContainerInterface>& To, const FString& Msg);
 	
 	UFUNCTION(Server, Reliable)
-	void Server_Response(APlayerState* Target, const FGameplayTagContainer& Source, int32 Index);
+	void Server_Response(APlayerState* Target, const FGameplayTagContainer& Source, const FGameplayTagContainer& Card);
 	
 	UFUNCTION(Server, Reliable)
-	void Server_ShowCard(const TArray<int32>& Cards);
+	void Server_ShowCard(const TArray<FGameplayTagContainer>& Cards);
 	
 	UFUNCTION(Server, Reliable)
 	void Server_StartComparison(const TArray<APlayerState*>& Targets);
@@ -108,5 +108,5 @@ private:
 	void Server_ResponseComparison(APlayerState* Target);
 	
 	UFUNCTION(Server, Reliable)
-	void Server_ConfirmComparison(int32 Index, bool bIsInitiator);
+	void Server_ConfirmComparison(const FGameplayTagContainer& Card, bool bIsInitiator);
 };

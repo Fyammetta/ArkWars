@@ -3,6 +3,7 @@
 
 #include "BattlePlayerController.h"
 #include "BattlePlayerState.h"
+#include "ArkWars/Battle/Component/Card/CardComponentBase.h"
 #include "ArkWars/Battle/Component/Card/CardManagementBusComponent.h"
 #include "ArkWars/Battle/Toolkits/CardContainerInterface.h"
 
@@ -27,80 +28,28 @@ void ABattlePlayerController::TrySelectCard(const FGameplayTagContainer& Card) c
 
 void ABattlePlayerController::TryUseCard(const FGameplayTagContainer& Card)
 {
-	auto PS = GetPlayerState<AActor>();
-	if (!PS)
-	{
-		return;
-	}
+	auto PS = GetPlayerState<APlayerState>();
 	auto Comp = PS->FindComponentByClass<UCardManagementBusComponent>();
-	if (!Comp)
-	{
-		return;
-	}
 
-	auto Index = Comp->GetIndexOfCard(Card);
-	if (Index == INDEX_NONE)
-	{
-		return;
-	}
-	Server_UseCard(Index);
-	
+	Server_UseCard(PS, Comp->GetSelectedTargets(), Card);
 }
 
 void ABattlePlayerController::TryMoveCard(const TArray<FGameplayTagContainer>& Cards, ICardContainerInterface* From, ICardContainerInterface* To, const FString& Msg)
 {
-	auto FromObj = From ? From->_getUObject() : nullptr;
-	auto ToObj = To ? To->_getUObject() : nullptr;
-
+	auto FromObj = From->_getUObject();
+	auto ToObj = From->_getUObject();
+	
 	Server_MoveCard(Cards ,FromObj, ToObj, Msg);
 }
 
 void ABattlePlayerController::TryResponse(APlayerState* Target, const FGameplayTagContainer& Source, const FGameplayTagContainer& Card)
 {
-	auto PS = GetPlayerState<AActor>();
-	if (!PS)
-	{
-		return;
-	}
-	auto Comp = PS->FindComponentByClass<UCardManagementBusComponent>();
-	if (!Comp)
-	{
-		return;
-	}
-
-	auto Index = Comp->GetIndexOfCard(Card);
-	
-	Server_Response(Target, Source, Index);
+	Server_Response(Target, Source, Card);
 }
 
 void ABattlePlayerController::TryShowCard(const TArray<FGameplayTagContainer>& Cards)
 {
-	if (Cards.IsEmpty())
-	{
-		return;
-	}
-	auto PS = GetPlayerState<AActor>();
-	if (!PS)
-	{
-		return;
-	}
-	auto Comp = PS->FindComponentByClass<UCardManagementBusComponent>();
-	if (!Comp)
-	{
-		return;
-	}
-
-	TArray<int32> IndexArray{};
-	TArray<FGameplayTagContainer> CachedCards {};
-	Comp->GetCards(CachedCards);
-	for (const FGameplayTagContainer& C : Cards)
-	{
-		auto Index = CachedCards.Find(C);
-		if (Index != INDEX_NONE)
-			IndexArray.Add(CachedCards.Find(C));
-	}
-	
-	Server_ShowCard(IndexArray);
+	Server_ShowCard(Cards);
 }
 
 void ABattlePlayerController::TryStartComparison(const TArray<APlayerState*>& Targets)
@@ -129,30 +78,25 @@ void ABattlePlayerController::TryActivateSkill(const FGameplayTag& SkillTag)
 {
 }
 
-void ABattlePlayerController::Server_UseCard_Implementation(int32 Index)
+void ABattlePlayerController::Server_UseCard_Implementation(APlayerState* Source, const TArray<APlayerState*>& Targets, const FGameplayTagContainer& Card)
 {
-	auto PS = GetPlayerState<AActor>();
-	if (!PS)
+	if (auto Comp = UCardComponentBase::Get(this, Card))
 	{
-		return;
-	}
-	auto Comp = PS->FindComponentByClass<UCardManagementBusComponent>();
-	if (!Comp)
-	{
-		return;
+		Comp->Use(Source, Targets, Card);
 	}
 }
 
 void ABattlePlayerController::Server_MoveCard_Implementation(const TArray<FGameplayTagContainer>& Cards,
 	const TScriptInterface<ICardContainerInterface>& From, const TScriptInterface<ICardContainerInterface>& To, const FString& Msg)
 {
+	From->MoveOut(To.GetInterface(),Cards,Msg);
 }
 
-void ABattlePlayerController::Server_Response_Implementation(APlayerState* Target, const FGameplayTagContainer& Source, int32 Index)
+void ABattlePlayerController::Server_Response_Implementation(APlayerState* Target, const FGameplayTagContainer& Source, const FGameplayTagContainer& Card)
 {
 }
 
-void ABattlePlayerController::Server_ShowCard_Implementation(const TArray<int32>& Cards)
+void ABattlePlayerController::Server_ShowCard_Implementation(const TArray<FGameplayTagContainer>& Cards)
 {
 }
 
@@ -164,6 +108,6 @@ void ABattlePlayerController::Server_ResponseComparison_Implementation(APlayerSt
 {
 }
 
-void ABattlePlayerController::Server_ConfirmComparison_Implementation(int32 Index, bool bIsInitiator)
+void ABattlePlayerController::Server_ConfirmComparison_Implementation(const FGameplayTagContainer& Card, bool bIsInitiator)
 {
 }

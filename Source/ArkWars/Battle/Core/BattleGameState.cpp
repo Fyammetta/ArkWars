@@ -2,11 +2,8 @@
 
 
 #include "BattleGameState.h"
-#include "ArkWars/Battle/Toolkits/ArkWarDelegates.h"
 #include "ArkWars/ArkWars.h"
-#include "ArkWars/Battle/System/BattleGameFlowSubsystem.h"
 #include "ArkWars/Battle/Toolkits/ArkWarGlobal.h"
-#include "ArkWars/Battle/Toolkits/BattleFunctionLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 EGamePhase ABattleGameState::GetLastPhase()

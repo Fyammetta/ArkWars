@@ -74,9 +74,14 @@ void UCardManagementBusComponent::ClearTargetsSelection(APlayerState* Target)
 	SelectedPlayers.Remove(Target);
 }
 
-TArray<TWeakObjectPtr<APlayerState>> UCardManagementBusComponent::GetSelectedTargets()
+TArray<APlayerState*> UCardManagementBusComponent::GetSelectedTargets()
 {
-	auto Arr = MoveTemp(SelectedPlayers);
+	TArray<APlayerState*> Arr {};
+	for (TWeakObjectPtr SelectedPlayer : SelectedPlayers)
+	{
+		if ( SelectedPlayer.IsValid() )
+			Arr.Add(SelectedPlayer.Get());
+	}
 	OnPlayerSelectionChanged.Broadcast(Arr, true);
 	return MoveTemp(Arr);
 }
@@ -101,7 +106,7 @@ void UCardManagementBusComponent::MoveIn(ICardContainerInterface* From, TArray<F
 {
 }
 
-void UCardManagementBusComponent::MoveOut(ICardContainerInterface* To, TArray<FGameplayTagContainer>&& Cards, const FString& Msg)
+void UCardManagementBusComponent::MoveOut(ICardContainerInterface* To, const TArray<FGameplayTagContainer>& Cards, const FString& Msg)
 {
 }
 
