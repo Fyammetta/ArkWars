@@ -23,9 +23,16 @@ namespace CardMessage
 	///
 	
 	using Key = const TCHAR*;
-	
+
+	enum EOrder
+	{
+		Top,
+		Botton,
+		Random
+	};
 	struct FMoveMessage
 	{
+#pragma region Keys
 		KEY	Num			= TEXT("NUM");			//用于非指定移动时，声明移动的数量，通常用于抽牌,不存在则视为1
 		KEY	From		= TEXT("FROM");			//用于指定实际的来源容器，如手牌、抽牌堆等,不存在则视为-P
 		KEY	To			= TEXT("TO");			//用于指定实际的卡牌去向，如弃牌堆、装备区等,不存在则视为-H
@@ -48,17 +55,24 @@ namespace CardMessage
 		KEY Heart		= TEXT("/H");			//红心
 		KEY Diamond		= TEXT("/D");			//方片
 		KEY Club		= TEXT("/C");			//草花
-		
+		KEY Order		= TEXT("ORDER");		//获取顺序，若不存在则默认为Top
+		KEY Top			= TEXT("#T");			//从容器栈顶开始
+		KEY Random		= TEXT("#R");			//每次随机从容器中获得一张
+		KEY Botton		= TEXT("#B");			//从容器栈底开始
+		KEY Meta		= TEXT("META");			//后续的部分不会被解码，直到出现' '或'\0'，可用于各自约定的Message定义
+#pragma endregion
 	private:
 		static const TMap<FString, FGameplayTag> DefaultArea;
 		static const TMap<FString, FGameplayTag> SuitMap;
 	public:
-		TFunction<bool(const FGameplayTagContainer&)> Predicate;
-		FGameplayTag FromArea;
-		FGameplayTag ToArea;
+		FString MetaInfo;
 		int32 Count;
 		bool bConsiderAsDiscard;
-		
+		EOrder OutOrder;
+		FGameplayTag FromArea;
+		FGameplayTag ToArea;
+		TFunction<bool(const FGameplayTagContainer&)> Predicate;
+
 		FMoveMessage(const FString& Msg);
 		
 		bool operator()(const FGameplayTagContainer& Card) const;
@@ -68,7 +82,14 @@ namespace CardMessage
 
 	struct Phase
 	{
+#pragma region Keys
 		
+		KEY Skip		= TEXT("SKIP");			//跳过特定阶段，直接进入下一个阶段
+		KEY Extra		= TEXT("EXTRA");		//获得额外阶段
+		KEY Jump		= TEXT("JUMP");			//跳至特定阶段
+		
+		
+#pragma endregion
 	};
 }
 

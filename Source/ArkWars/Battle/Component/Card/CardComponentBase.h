@@ -11,11 +11,12 @@
 /**
  *	抽象类，只允许创建子类的实例
  *	
- *	设计附加到CardManagerSubsystem上的组件，用于已出现过的所有的特定种类的卡牌
+ *	设计附加到特定Actor上的组件，用于已出现过的所有的特定种类的卡牌
+ *	不参与复制，仅服务器上存在
  *	
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Abstract)
-class ARKWARS_API UCardComponentBase : public UObject
+class ARKWARS_API UCardComponentBase : public UActorComponent
 {
 	GENERATED_BODY()
 	
@@ -24,17 +25,17 @@ public:
 	virtual ~UCardComponentBase();
 	/**
 	 *	添加手牌等需要获取卡牌组件时调用
-	 *	@param WorldContextObject	用于确认当前世界的对象
+	 *	@param Owner				附加到的Actor, 需要是世界唯一的实例
 	 *	@param Tag					卡牌的种类所对应的Tag
 	 */
-	static UCardComponentBase* Get(const UObject* WorldContextObject, const FGameplayTag& Tag);
+	static UCardComponentBase* Get(AActor* Owner, const FGameplayTag& Tag);
 	
 	/**
 	 *	添加手牌等需要获取卡牌组件时调用
-	 *	@param WorldContextObject	用于确认当前世界的对象
+	 *	@param Owner				附加到的Actor, 需要是世界唯一的实例
 	 *	@param Card					特定的卡牌，用于获取对应的Tag，优先以视为/转化的目标为键
 	 */
-	static UCardComponentBase* Get(const UObject* WorldContextObject, const FGameplayTagContainer& Card);
+	static UCardComponentBase* Get(AActor* Owner, const FGameplayTagContainer& Card);
 	/**
 	 *	需要使用卡牌时调用, 可以指定多个目标, 逻辑由子类提供
 	 *	@param Source				卡牌的使用者

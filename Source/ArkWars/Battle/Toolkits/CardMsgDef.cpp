@@ -50,6 +50,7 @@ CardMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 	FromArea = CardTags::Pile();
 	ToArea = CardTags::Hand();
 	bConsiderAsDiscard = Msg.Find(Discard) != INDEX_NONE;
+	OutOrder = EOrder::Top;
 	FString Temp {};
 
 	auto Find = [&Msg, &Temp](Key K)->bool
@@ -114,6 +115,14 @@ CardMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 			ToArea = DefaultArea[*Temp];
 		}
 	}
+	if (Find(Order))
+	{
+		if (Temp == Random) OutOrder = EOrder::Random;
+		if (Temp == Botton) OutOrder = EOrder::Botton;
+	}
+	if (Find(Meta))
+		MetaInfo = Temp;
+	
 	FString CondMsg {};
 	if (Msg.Find(Condition) != INDEX_NONE)
 		Msg.Split(Condition,nullptr,&CondMsg);

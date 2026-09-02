@@ -24,16 +24,28 @@ UCardComponentBase::~UCardComponentBase()
 
 }
 
-UCardComponentBase* UCardComponentBase::Get(const UObject* WorldContextObject, const FGameplayTag& CardTag)
+UCardComponentBase* UCardComponentBase::Get(AActor* Owner, const FGameplayTag& CardTag)
 {
-	auto System = UBattleFunctionLibrary::GetCardManager(WorldContextObject);
+	if (!Owner || Owner->HasAuthority())
+	{
+		UE_LOG(LogCard, Warning, TEXT("[UCardComponentBase][Get] Component can only be found on server"))
+		return nullptr;		
+	}
+	auto RetVal = Cast<UCardComponentBase>(Owner->FindComponentByTag(StaticClass(), CardTag.GetTagName()));
+
+
+	if (RetVal)
+	{
+		return RetVal;
+	}
+	
+	auto System = UBattleFunctionLibrary::GetCardManager(Owner);
 	
 	if (!System)
 	{
 		UE_LOG(LogCard, Warning, TEXT("[UCardComponentBase][Get] Failed to get subsystem"))
 		return nullptr;
 	}
-	auto RetVal = System->GetCardComponentByTag(CardTag);
 	if (!RetVal)
 	{
 		UE_LOG(LogCard, Log, TEXT("[UCardComponentBase][Get] Try to create component"))
@@ -43,11 +55,13 @@ UCardComponentBase* UCardComponentBase::Get(const UObject* WorldContextObject, c
 		
 		if (Info->IsValid())
 		{
-			auto Comp = NewObject<UCardComponentBase>(System ,Info->Class, *Info->CardName.ToString());
-			Info->DataGetter.BindUObject(Comp, &UCardComponentBase::DataConverter);
-			Info->Card = Comp;
-			Comp->Key = CardTag;
-			return Comp;
+			RetVal = Cast<UCardComponentBase>(Owner->AddComponentByClass(Info->Class,false, FTransform(),true));
+			RetVal->ComponentTags.Add(CardTag.GetTagName());
+			RetVal->RegisterComponent();
+			Info->DataGetter.BindUObject(RetVal, &UCardComponentBase::DataConverter);
+			Info->Card = RetVal;
+			RetVal->Key = CardTag;
+			return RetVal;
 		}
 	}
 	
@@ -55,12 +69,12 @@ UCardComponentBase* UCardComponentBase::Get(const UObject* WorldContextObject, c
 	return nullptr;
 }
 
-UCardComponentBase* UCardComponentBase::Get(const UObject* WorldContextObject, const FGameplayTagContainer& Card)
+UCardComponentBase* UCardComponentBase::Get(AActor* Owner, const FGameplayTagContainer& Card)
 {
 	FGameplayTag Key;
 	//TODO: 解码Key的方式
 	
-	return Get(WorldContextObject, Key);
+	return Get(Owner, Key);
 }
 
 void UCardComponentBase::Use(APlayerState* Source, const TArray<APlayerState*>& Targets, const FGameplayTagContainer& Card)
