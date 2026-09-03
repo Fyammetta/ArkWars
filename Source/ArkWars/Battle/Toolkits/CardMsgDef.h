@@ -36,14 +36,14 @@ namespace CardMessage
 		KEY	Num			= TEXT("NUM");			//用于非指定移动时，声明移动的数量，通常用于抽牌,不存在则视为1
 		KEY	From		= TEXT("FROM");			//用于指定实际的来源容器，如手牌、抽牌堆等,不存在则视为-P
 		KEY	To			= TEXT("TO");			//用于指定实际的卡牌去向，如弃牌堆、装备区等,不存在则视为-H
-		KEY Hand		= TEXT("-H");			//手牌区
-		KEY	Used		= TEXT("-U");			//缓冲堆，使用后的卡牌进入其中，在出牌阶段结束后移动至弃牌堆并不触发弃牌事件
-		KEY	Discard		= TEXT("-D");			//弃牌堆
-		KEY	Pile		= TEXT("-P");			//抽牌堆
-		KEY	Equipment	= TEXT("-E");			//装备区
-		KEY	Judgement	= TEXT("-J");			//判定区
-		KEY	Cache		= TEXT("-C");			//暂存区
-		KEY Special		= TEXT("-S");			//特殊区
+		KEY Hand		= TEXT("-AH");			//手牌区
+		KEY	Used		= TEXT("-AU");			//缓冲堆，使用后的卡牌进入其中，在出牌阶段结束后移动至弃牌堆并不触发弃牌事件
+		KEY	Discard		= TEXT("-AD");			//弃牌堆
+		KEY	Pile		= TEXT("-AP");			//抽牌堆
+		KEY	Equipment	= TEXT("-AE");			//装备区
+		KEY	Judgement	= TEXT("-AJ");			//判定区
+		KEY	Cache		= TEXT("-AC");			//暂存区
+		KEY Special		= TEXT("-AS");			//特殊区
 		KEY Area		= TEXT("AREA");			//若FROM/TO的参数为-S,需要声明特定区域类型
 		KEY Condition	= TEXT("CONDITION:");	//后续KEY为判定性
 		KEY End			= TEXT("*");			//存在判定性KEY时，宣言Msg结束
@@ -51,14 +51,14 @@ namespace CardMessage
 		KEY Suit		= TEXT("SUIT");			//用于非指定移动时，用于声明移动牌的花色
 		KEY Max			= TEXT("MAX");			//用于非指定移动时，用于声明移动牌的最大点数，只允许使用数字
 		KEY Min			= TEXT("MIN");			//用于非指定移动时，用于声明移动牌的最小点数，只允许使用数字
-		KEY Spade		= TEXT("/S");			//黑桃
-		KEY Heart		= TEXT("/H");			//红心
-		KEY Diamond		= TEXT("/D");			//方片
-		KEY Club		= TEXT("/C");			//草花
+		KEY Spade		= TEXT("-SS");			//黑桃
+		KEY Heart		= TEXT("-SH");			//红心
+		KEY Diamond		= TEXT("-SD");			//方片
+		KEY Club		= TEXT("-SC");			//草花
 		KEY Order		= TEXT("ORDER");		//获取顺序，若不存在则默认为Top
-		KEY Top			= TEXT("#T");			//从容器栈顶开始
-		KEY Random		= TEXT("#R");			//每次随机从容器中获得一张
-		KEY Botton		= TEXT("#B");			//从容器栈底开始
+		KEY Top			= TEXT("-OT");			//从容器栈顶开始
+		KEY Random		= TEXT("-OR");			//每次随机从容器中获得一张
+		KEY Botton		= TEXT("-OB");			//从容器栈底开始
 		KEY Meta		= TEXT("META");			//后续的部分不会被解码，直到出现' '或'\0'，可用于各自约定的Message定义
 #pragma endregion
 	private:

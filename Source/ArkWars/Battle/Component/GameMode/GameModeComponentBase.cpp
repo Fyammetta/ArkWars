@@ -97,23 +97,3 @@ void UGameModeComponentBase::AllocateIdentity()
 	}
 }
 
-void UGameModeComponentBase::ChangeGamePhase(const FString& Msg)
-{
-	auto GS = GetWorld()->GetGameState<ABattleGameState>();
-	if (!GS) return;
-	
-	auto CurPhase = static_cast<int32>(GS->GetPhase()) - 1;
-	
-	auto TarPhase = CurPhase % GamePhase::GamePhaseToTagMap.Num() + 1;
-	GS->SetPhase(static_cast<EGamePhase>(TarPhase));
-	
-}
-
-void UGameModeComponentBase::BroadcastCardToPlayer(APlayerState* Player, const TArray<FGameplayTagContainer>& Cards)
-{
-}
-
-void UGameModeComponentBase::ClearDiscardCache()
-{
-	//TODO: 将Cache中的卡牌移交给Subsystem的弃牌区
-}

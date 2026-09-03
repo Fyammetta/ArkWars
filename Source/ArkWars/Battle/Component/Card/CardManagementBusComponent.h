@@ -35,6 +35,7 @@ public:
 	FPlayerSelectionChangeDelegate OnPlayerSelectionChanged;
 	FCardSelectionChangeDelegate OnCardSelectionChanged;
 	
+	
 	int32 GetIndexOfCard(const FGameplayTagContainer& Card) const;
 	
 	void SelectCard(const FGameplayTagContainer& Card);

@@ -16,7 +16,8 @@ namespace
 {
 	int32 PointToNumber(const FGameplayTag& PointTag)
 	{
-		auto Point = *PointTag.ToString().end();
+		auto TagStr = PointTag.ToString();
+		auto Point = TagStr[TagStr.Len()-1];
 		switch (Point)
 		{
 		case 'K':	return 13;
@@ -40,6 +41,8 @@ void UCardManagementBusComponent::GetLifetimeReplicatedProps(TArray<class FLifet
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UCardManagementBusComponent, EquipmentArea);
+	DOREPLIFETIME(UCardManagementBusComponent, HandCards);
+	DOREPLIFETIME(UCardManagementBusComponent, JudgementArea);
 }
 
 int32 UCardManagementBusComponent::GetIndexOfCard(const FGameplayTagContainer& Card) const

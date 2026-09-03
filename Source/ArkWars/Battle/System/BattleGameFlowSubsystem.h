@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ArkWars/Battle/Toolkits/ArkWarTypes.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "BattleGameFlowSubsystem.generated.h"
 
@@ -26,4 +27,8 @@ public:
 	void RegisterManagerActor(AActor* Actor);
 
 	AActor* GetManagerActor() const;
+	
+	bool IsRunningOnServer() const;
+	
+	void PushPhase(const FString& Msg);
 };

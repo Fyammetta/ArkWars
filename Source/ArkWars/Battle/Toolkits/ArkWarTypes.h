@@ -278,4 +278,3 @@ class FCardAreaSlotFactory
 	
 	static FCardAreaSlot CreateSpecialSlot(const FGameplayTag& Key, int32 Capacity);
 };
-

@@ -3,6 +3,11 @@
 
 #include "BattleGameFlowSubsystem.h"
 
+#include "ArkWars/Battle/Component/GameFlow/GamePhaseManagerComponent.h"
+#include "ArkWars/Battle/Component/GameMode/GameModeComponentBase.h"
+#include "ArkWars/Battle/Toolkits/ArkWarGlobal.h"
+#include "GameFramework/GameStateBase.h"
+
 bool UBattleGameFlowSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
 	if (const UWorld* World = Cast<UWorld>(Outer))
@@ -42,3 +47,42 @@ AActor* UBattleGameFlowSubsystem::GetManagerActor() const
 {
 	return ManagerActor;
 }
+
+bool UBattleGameFlowSubsystem::IsRunningOnServer() const
+{
+	return GetWorld() ? GetWorld()->GetNetMode() < NM_Client : false;
+}
+
+void UBattleGameFlowSubsystem::PushPhase(const FString& Msg)
+{
+	UGamePhaseManagerComponent* Comp = nullptr;
+	if (auto GS = GetWorld() ? GetWorld()->GetAuthGameMode() : nullptr)
+	{
+		Comp = GS->FindComponentByClass<UGamePhaseManagerComponent>();
+	}
+	
+	if (!Comp)
+	{
+		return;
+	}
+	if (Msg.IsEmpty())
+	{
+		auto Phase = Comp->GetPhase();
+		if (Phase == EGamePhase::GameStart)
+		{
+			Comp->SetPhase(EGamePhase::Begin);
+		}
+		else
+		{
+			auto CurPhase = static_cast<int32>(Comp->GetPhase());
+			
+			auto TarPhase = CurPhase % GamePhase::GamePhaseToTagMap.Num() + 1;
+			Phase = static_cast<EGamePhase>(TarPhase);
+			if (Phase == EGamePhase::GameStart)
+				Comp->SetNextPlayerActive();
+			Comp->SetPhase(Phase);
+		}
+	}
+		
+}
+
