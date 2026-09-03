@@ -62,8 +62,9 @@ namespace CardMessage
 		KEY Meta		= TEXT("META");			//后续的部分不会被解码，直到出现' '或'\0'，可用于各自约定的Message定义
 #pragma endregion
 	private:
-		static const TMap<FString, FGameplayTag> DefaultArea;
-		static const TMap<FString, FGameplayTag> SuitMap;
+		//	静态表延迟到首次调用时构造，避免在静态初始化期触碰标签
+		static const TMap<FString, FGameplayTag>& GetDefaultAreaMap();
+		static const TMap<FString, FGameplayTag>& GetSuitMap();
 	public:
 		FString MetaInfo;
 		int32 Count;

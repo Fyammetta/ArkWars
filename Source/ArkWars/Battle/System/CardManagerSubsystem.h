@@ -4,7 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
-#include "ArkWars/Battle/Toolkits/ArkWarTypes.h"
+#include "ArkWars/Battle/Toolkits/ArkWarTableTypes.h"
+#include "ArkWars/Battle/Toolkits/ArkWarCardTypes.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "CardManagerSubsystem.generated.h"
 

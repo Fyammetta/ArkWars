@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "ArkWars/Battle/Toolkits/ArkWarDelegates.h"
-#include "ArkWars/Battle/Toolkits/ArkWarTypes.h"
 #include "GameFramework/GameState.h"
 #include "BattleGameState.generated.h"
 

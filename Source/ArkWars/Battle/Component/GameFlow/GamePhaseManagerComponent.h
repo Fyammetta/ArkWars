@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "ArkWars/Battle/Toolkits/ArkWarDelegates.h"
-#include "ArkWars/Battle/Toolkits/ArkWarTypes.h"
+#include "ArkWars/Battle/Toolkits/ArkWarFlowTypes.h"
 #include "Components/ActorComponent.h"
 #include "GamePhaseManagerComponent.generated.h"
 

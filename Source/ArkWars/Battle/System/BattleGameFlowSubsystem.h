@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ArkWars/Battle/Toolkits/ArkWarTypes.h"
+#include "ArkWars/Battle/Toolkits/ArkWarFlowTypes.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "BattleGameFlowSubsystem.generated.h"
 

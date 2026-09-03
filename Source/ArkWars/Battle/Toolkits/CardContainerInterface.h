@@ -3,11 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ArkWarTypes.h"
+#include "GameplayTagContainer.h"
 #include "UObject/Interface.h"
 #include "CardContainerInterface.generated.h"
-
-struct FGameplayTagContainer;
 // This class does not need to be modified.
 UINTERFACE()
 class UCardContainerInterface : public UInterface

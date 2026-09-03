@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ArkWars/Battle/Toolkits/ArkWarTypes.h"
 #include "Components/ActorComponent.h"
 #include "GameModeComponentBase.generated.h"
 

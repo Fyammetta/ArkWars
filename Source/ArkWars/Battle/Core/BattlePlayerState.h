@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
-#include "ArkWars/Battle/Toolkits/ArkWarTypes.h"
 #include "ArkWars/Battle/Toolkits/CardContainerInterface.h"
 #include "GameFramework/PlayerState.h"
 #include "BattlePlayerState.generated.h"

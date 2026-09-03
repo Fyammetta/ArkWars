@@ -4,7 +4,6 @@
 #include "GamePhaseManagerComponent.h"
 
 #include "ArkWars/ArkWars.h"
-#include "ArkWars/Battle/Toolkits/ArkWarGlobal.h"
 #include "Net/UnrealNetwork.h"
 
 
@@ -53,7 +52,7 @@ void UGamePhaseManagerComponent::OnRep_Phase() const
 
 void UGamePhaseManagerComponent::BroadcastPhaseChange() const
 {
-	OnGamePhaseChanged.Broadcast(GamePhase::GamePhaseToTagMap[CachedPhase], GamePhase::GamePhaseToTagMap[CurrentPhase]);
+	OnGamePhaseChanged.Broadcast(GamePhase::GetPhaseTag(CachedPhase), GamePhase::GetPhaseTag(CurrentPhase));
 }
 
 

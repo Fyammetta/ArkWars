@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "ArkWars/Battle/Toolkits/ArkWarDelegates.h"
-#include "ArkWars/Battle/Toolkits/ArkWarTypes.h"
+#include "ArkWars/Battle/Toolkits/ArkWarCardTypes.h"
 #include "ArkWars/Battle/Toolkits/CardContainerInterface.h"
 #include "Components/ActorComponent.h"
 #include "CardManagementBusComponent.generated.h"
@@ -40,11 +40,14 @@ public:
 	
 	void SelectCard(const FGameplayTagContainer& Card);
 	void ClearCardSelection(const FGameplayTagContainer& Card);
-	TArray<FGameplayTagContainer> GetSelectedCards();
+	const TArray<FGameplayTagContainer>& GetSelectedCards() { return SelectedCards; };
+	TArray<FGameplayTagContainer> ConsumeCards();
 	
 	void SelectTarget(APlayerState* Target);
 	void ClearTargetsSelection(APlayerState* Target);
-	TArray<APlayerState*> GetSelectedTargets();
+	const TArray<TWeakObjectPtr<APlayerState>>& GetSelectedTargets() { return SelectedPlayers;};
+	TArray<APlayerState*> ConsumeTargets();
+
 	
 	bool CanPutInJudgement(const FGameplayTagContainer& Card) const;
 	

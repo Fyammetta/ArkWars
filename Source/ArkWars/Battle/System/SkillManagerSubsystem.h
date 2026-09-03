@@ -3,7 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ArkWars/Battle/Toolkits/ArkWarTypes.h"
+#include "ArkWars/Battle/Toolkits/ArkWarTableTypes.h"
+#include "ArkWars/Battle/Toolkits/ArkWarSkillTypes.h"
+#include "ArkWars/Battle/Toolkits/ArkWarOperatorTypes.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "SkillManagerSubsystem.generated.h"
 

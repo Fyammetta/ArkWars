@@ -1,5 +1,7 @@
 ﻿#pragma once
-#include "ArkWarTypes.h"
+#include "GameplayTagContainer.h"
+
+class APlayerState;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FGamePhaseChangeDelegate, const FGameplayTag& /* Before */, const FGameplayTag& /* Current */);
 DECLARE_MULTICAST_DELEGATE_OneParam(FActivePlayerChangeDelegate, APlayerState* /* ActivePlayer */);

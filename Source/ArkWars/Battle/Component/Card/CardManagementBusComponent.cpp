@@ -9,7 +9,7 @@
 
 #ifndef MATCH_SUIT_CASE
 #define MATCH_SUIT_CASE(Suit)	\
-	case Suit: if(!Card.HasTagExact(CardTags::Suit())) return false; break;
+	case Suit: if(!Card.HasTagExact(CardTags::Suit)) return false; break;
 #endif
 
 namespace 
@@ -60,10 +60,22 @@ void UCardManagementBusComponent::ClearCardSelection(const FGameplayTagContainer
 	SelectedCards.Remove(Card);
 }
 
-TArray<FGameplayTagContainer> UCardManagementBusComponent::GetSelectedCards()
+TArray<FGameplayTagContainer> UCardManagementBusComponent::ConsumeCards()
 {
 	auto Arr = MoveTemp(SelectedCards);
 	OnCardSelectionChanged.Broadcast(Arr, true);
+	return MoveTemp(Arr);
+}
+
+TArray<APlayerState*> UCardManagementBusComponent::ConsumeTargets()
+{
+	TArray<APlayerState*> Arr {};
+	for (TWeakObjectPtr SelectedPlayer : SelectedPlayers)
+	{
+		if ( SelectedPlayer.IsValid() )
+			Arr.Add(SelectedPlayer.Get());
+	}
+	OnPlayerSelectionChanged.Broadcast(Arr, true);
 	return MoveTemp(Arr);
 }
 
@@ -77,17 +89,6 @@ void UCardManagementBusComponent::ClearTargetsSelection(APlayerState* Target)
 	SelectedPlayers.Remove(Target);
 }
 
-TArray<APlayerState*> UCardManagementBusComponent::GetSelectedTargets()
-{
-	TArray<APlayerState*> Arr {};
-	for (TWeakObjectPtr SelectedPlayer : SelectedPlayers)
-	{
-		if ( SelectedPlayer.IsValid() )
-			Arr.Add(SelectedPlayer.Get());
-	}
-	OnPlayerSelectionChanged.Broadcast(Arr, true);
-	return MoveTemp(Arr);
-}
 
 bool UCardManagementBusComponent::CanPutInJudgement(const FGameplayTagContainer& Card) const
 {

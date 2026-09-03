@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ArkWars/Battle/Toolkits/ArkWarTypes.h"
+#include "GameplayTagContainer.h"
 #include "GameFramework/PlayerController.h"
 #include "BattlePlayerController.generated.h"
 

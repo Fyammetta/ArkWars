@@ -31,7 +31,7 @@ void ABattlePlayerController::TryUseCard(const FGameplayTagContainer& Card)
 	auto PS = GetPlayerState<APlayerState>();
 	auto Comp = PS->FindComponentByClass<UCardManagementBusComponent>();
 
-	Server_UseCard(PS, Comp->GetSelectedTargets(), Card);
+	Server_UseCard(PS, Comp->ConsumeTargets(), Card);
 }
 
 void ABattlePlayerController::TryMoveCard(const TArray<FGameplayTagContainer>& Cards, ICardContainerInterface* From, ICardContainerInterface* To, const FString& Msg)

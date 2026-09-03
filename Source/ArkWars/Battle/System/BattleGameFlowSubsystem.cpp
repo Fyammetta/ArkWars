@@ -4,8 +4,7 @@
 #include "BattleGameFlowSubsystem.h"
 
 #include "ArkWars/Battle/Component/GameFlow/GamePhaseManagerComponent.h"
-#include "ArkWars/Battle/Component/GameMode/GameModeComponentBase.h"
-#include "ArkWars/Battle/Toolkits/ArkWarGlobal.h"
+#include "ArkWars/Battle/Toolkits/ArkWarFlowTypes.h"
 #include "GameFramework/GameStateBase.h"
 
 bool UBattleGameFlowSubsystem::ShouldCreateSubsystem(UObject* Outer) const
@@ -14,7 +13,7 @@ bool UBattleGameFlowSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 	{
 		if (const FWorldContext* Ctx = GEngine->GetWorldContextFromWorld(World))
 		{
-			if (Ctx->LastURL.HasOption(TEXT("listen")))
+			if (World->GetNetMode() != NM_Standalone)
 			{
 				return true; 
 			}
@@ -76,7 +75,7 @@ void UBattleGameFlowSubsystem::PushPhase(const FString& Msg)
 		{
 			auto CurPhase = static_cast<int32>(Comp->GetPhase());
 			
-			auto TarPhase = CurPhase % GamePhase::GamePhaseToTagMap.Num() + 1;
+			auto TarPhase = CurPhase % GamePhase::PhaseCount + 1;
 			Phase = static_cast<EGamePhase>(TarPhase);
 			if (Phase == EGamePhase::GameStart)
 				Comp->SetNextPlayerActive();

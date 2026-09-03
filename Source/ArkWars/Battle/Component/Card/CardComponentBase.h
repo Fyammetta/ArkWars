@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ArkWars/Battle/Toolkits/ArkWarTypes.h"
+#include "GameplayTagContainer.h"
 #include "Components/ActorComponent.h"
 #include "ArkWars/Battle/Toolkits/CardContainerInterface.h"
 #include "CardComponentBase.generated.h"

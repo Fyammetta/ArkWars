@@ -6,7 +6,6 @@
 #include "ArkWars/ArkWars.h"
 #include "ArkWars/Battle/Core/BattleGameState.h"
 #include "ArkWars/Battle/System/BattleGameFlowSubsystem.h"
-#include "ArkWars/Battle/Toolkits/ArkWarGlobal.h"
 #include "ArkWars/Battle/Toolkits/ArkWarTags.h"
 #include "ArkWars/Battle/Toolkits/BattleFunctionLibrary.h"
 #include "GameFramework/GameStateBase.h"
@@ -19,19 +18,19 @@ namespace
 		TArray<FGameplayTag> RetVal{};
 		switch (Num)
 		{
-			case 10:	RetVal.Add(IdentityTags::Operator());
-			case 9:		RetVal.Add(IdentityTags::Spy());
-			case 8:		RetVal.Add(IdentityTags::Raider());
-			case 7:		RetVal.Add(IdentityTags::Operator());
-			case 6:		RetVal.Add(IdentityTags::Raider());
-			case 5:		RetVal.Add(IdentityTags::Raider());
-			case 4:		RetVal.Add(IdentityTags::Operator());
-			case 3:		RetVal.Add(IdentityTags::Spy());
-			case 2:		RetVal.Add(IdentityTags::Raider()) ; break;
+			case 10:	RetVal.Add(IdentityTags::Operator);
+			case 9:		RetVal.Add(IdentityTags::Spy);
+			case 8:		RetVal.Add(IdentityTags::Raider);
+			case 7:		RetVal.Add(IdentityTags::Operator);
+			case 6:		RetVal.Add(IdentityTags::Raider);
+			case 5:		RetVal.Add(IdentityTags::Raider);
+			case 4:		RetVal.Add(IdentityTags::Operator);
+			case 3:		RetVal.Add(IdentityTags::Spy);
+			case 2:		RetVal.Add(IdentityTags::Raider) ; break;
 			default: return {};
 		}
 		
-		RetVal.Add(IdentityTags::Commander());
+		RetVal.Add(IdentityTags::Commander);
 		return RetVal;
 	}
 }

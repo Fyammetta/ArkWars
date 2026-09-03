@@ -1,15 +1,12 @@
-﻿#pragma once
+#pragma once
 #include "GameplayTagContainer.h"
-#include "Containers/UnrealString.h"
+#include "NativeGameplayTags.h"
 
-#ifndef REGISTER_TAG
-	#define REGISTER_TAG(Getter,Tag)											\
-		inline const FGameplayTag& Getter() {									\
-		static FGameplayTag T = FGameplayTag::RequestGameplayTag(#Tag);			\
-		return T;}
-#endif
-
-#pragma region TagMacro
+// ---------------------------------------------------------------------------
+//	动态标签宏：仅允许在运行期、由数据驱动的场合调用（表行、Msg 解析等）。
+//	凡是静态已知的标签，一律使用下方声明的原生标签（UE_DEFINE_GAMEPLAY_TAG），
+//	避免在静态初始化期调用 RequestGameplayTag。
+// ---------------------------------------------------------------------------
 #ifndef RACE
 	#define RACE(Tag)	FGameplayTag::RequestGameplayTag("Race."#Tag)
 #endif
@@ -22,69 +19,73 @@
 	#define  CARD(Card)	FGameplayTag::RequestGameplayTag("Card.Class."#Card)
 #endif
 
-#pragma  endregion
 
 namespace SkillTags
 {
-	REGISTER_TAG(Root, Skill)
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Root)				// Skill
 }
 
 
 namespace CardTags
 {
-	REGISTER_TAG(Root, Card)
-	REGISTER_TAG(Class, Card.Class)
-	REGISTER_TAG(Type, Card.Type)
-	REGISTER_TAG(Diamond, Card.Suit.Diamond)
-	REGISTER_TAG(Heart, Card.Suit.Heart)
-	REGISTER_TAG(Club, Card.Suit.Club)
-	REGISTER_TAG(Spade, Card.Suit.Spade)
-	REGISTER_TAG(Point, Card.Point)
-	
-	namespace CardPoint
-	{
-		template<typename FString::ElementType T, bool Cond>
-		struct TIsLegalPoint
-		{
-			static_assert(Cond, "TIsLegalPoint: Point is illegal");
-		};
-		template<typename FString::ElementType T>
-		struct TIsLegalPoint<T,true>
-		{
-			constexpr static typename FString::ElementType Value = T;
-			constexpr static int32 Point = T == 'K' ? 13 : T == 'Q' ? 12 : T == 'J' ? 11 : T == 'X' ? 10 : T == 'A' ? 1 : static_cast<int>(T) - static_cast<int>('0');
-		};
-	}
-	
-	template<typename FString::ElementType T>
-	const FGameplayTag& Point()
-	{
-		static FGameplayTag Point_V = 
-			FGameplayTag::RequestGameplayTag(FName(FString::Printf(TEXT("Card.Point.%c"),
-				CardPoint::TIsLegalPoint<T, T == 'K' || T == 'Q' || T == 'J' || T == 'A' || T == 'X' || (static_cast<int>(T) - static_cast<int>('0') >=2 && static_cast<int>(T) - static_cast<int>('0')<=9) >::Value)));
-		return Point_V;
-	}
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Root)				// Card
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Class)				// Card.Class
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Type)				// Card.Type
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Suit)				// Card.Suit
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Diamond)				// Card.Suit.Diamond
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Heart)				// Card.Suit.Heart
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Club)				// Card.Suit.Club
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Spade)				// Card.Suit.Spade
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Point)				// Card.Point
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(PointA)				// Card.Point.A
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Point2)				// Card.Point.2
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Point3)				// Card.Point.3
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Point4)				// Card.Point.4
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Point5)				// Card.Point.5
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Point6)				// Card.Point.6
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Point7)				// Card.Point.7
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Point8)				// Card.Point.8
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Point9)				// Card.Point.9
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(PointX)				// Card.Point.X
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(PointJ)				// Card.Point.J
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(PointQ)				// Card.Point.Q
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(PointK)				// Card.Point.K
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Pile)				// Card.Area.Pile
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Discard)				// Card.Area.Discard
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Hand)				// Card.Area.Hand
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Judgement)			// Card.Area.Judgement
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Equipment)			// Card.Area.Equipment
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Cache)				// Card.Area.Cache
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Used)				// Card.Area.Used
 
-	REGISTER_TAG(Pile, Card.Area.Pile)
-	REGISTER_TAG(Discard, Card.Area.Discard)
-	REGISTER_TAG(Hand, Card.Area.Hand)
-	REGISTER_TAG(Judgement, Card.Area.Judgement)
-	REGISTER_TAG(Equipment, Card.Area.Equipment)
-	REGISTER_TAG(Cache, Card.Area.Cache)
-	REGISTER_TAG(Used, Card.Area.Used)
+	/// 运行期按字符取点数标签（'A','2'..'9','X','J','Q','K'），非法输入返回无效标签
+	ARKWARS_API FGameplayTag GetPointTag(TCHAR PointChar);
+
+	/// 运行期按数值取点数标签（1..13），非法输入返回无效标签
+	ARKWARS_API FGameplayTag GetPointTag(int32 PointValue);
 }
 
 namespace GameModeTags
 {
-	REGISTER_TAG(Default, Gamemode.Default)
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Default)				// Gamemode.Default
+}
+
+/// 语音事件标签：作为干员表中 VoiceLines 的键；技能语音直接使用技能标签，不走此列
+namespace VoiceTags
+{
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Root)				// Voice.Event
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Select)				// Voice.Event.Select		选中/部署
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(CardPlay)			// Voice.Event.CardPlay		出牌
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Damage)				// Voice.Event.Damage		受到伤害
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dying)				// Voice.Event.Dying		濒死
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Death)				// Voice.Event.Death		阵亡
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Victory)				// Voice.Event.Victory		胜利
 }
 
 namespace IdentityTags
 {
-	REGISTER_TAG(Commander, Identity.Commander)
-	REGISTER_TAG(Operator, Identity.Operator)
-	REGISTER_TAG(Spy, Identity.Spy)
-	REGISTER_TAG(Raider, Identity.Raider)
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Commander)			// Identity.Commander
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Operator)			// Identity.Operator
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Spy)					// Identity.Spy
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Raider)				// Identity.Raider
 }
-
-#undef REGISTER_TAG

@@ -6,7 +6,6 @@
 #include "ArkWars/ArkWars.h"
 #include "ArkWars/Battle/Component/Card/CardComponentBase.h"
 #include "ArkWars/Battle/Toolkits/ArkWarTags.h"
-#include "ArkWars/Battle/Toolkits/ArkWarTypes.h"
 #include "ArkWars/Settings/BattleCardSettings.h"
 
 FCardInfo& FCardInfo::operator=(const FCardInfo& Other)
@@ -82,9 +81,9 @@ namespace
 	FORCEINLINE void Check(const TCHAR* Context, const FGameplayTag& Tag)
 	{
 #if !UE_BUILD_SHIPPING
-		if (!Tag.MatchesTag(CardTags::Root()))
+		if (!Tag.MatchesTag(CardTags::Root))
 			UE_LOG(LogCard, Warning, TEXT("[UCardManagerSubsystem][%s] Tag %s is not for Card"),Context, *Tag.ToString())
-		else if (!Tag.MatchesTag(CardTags::Class()))
+		else if (!Tag.MatchesTag(CardTags::Class))
 		{
 			UE_LOG(LogCard, Warning, TEXT("[UCardManagerSubsystem][%s] Tag %s is not for Card Class"),Context, *Tag.ToString())
 		}
@@ -126,7 +125,7 @@ FGameplayTag UCardManagerSubsystem::GetCardType(const FGameplayTag& Tag)
 	{
 		for (const auto& EachTag : InfoMapping[Tag]->CardTags)
 		{
-			if (EachTag.MatchesTag(CardTags::Type()))
+			if (EachTag.MatchesTag(CardTags::Type))
 			{
 				return EachTag;
 			}

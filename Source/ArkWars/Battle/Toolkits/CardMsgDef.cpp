@@ -7,8 +7,11 @@ namespace
 {
 	int32 TagToPoint(const FGameplayTag& Tag)
 	{
+		// 取标签名末位字符（如 "Card.Point.9" 的 '9'）
+		const FString Name = Tag.ToString();
+		if (Name.IsEmpty()) return INDEX_NONE;
 
-		switch (auto Num = *Tag.ToString().end())
+		switch (const TCHAR Num = Name[Name.Len() - 1])
 		{
 			case 'A':			return 1;
 			case 'X':			return 10;
@@ -26,29 +29,37 @@ namespace
 
 
 
-const TMap<FString, FGameplayTag> CardMessage::FMoveMessage::DefaultArea = {
-	{Hand,						CardTags::Hand()		},
-	{Discard,					CardTags::Discard()		},
-	{Equipment,					CardTags::Equipment()	},
-	{Pile,						CardTags::Pile()		},
-	{Judgement,					CardTags::Judgement()	},
-	{Cache,						CardTags::Cache()		},
-	{Used,						CardTags::Used()		},
-};
-
-const TMap<FString, FGameplayTag> CardMessage::FMoveMessage::SuitMap
+const TMap<FString, FGameplayTag>& CardMessage::FMoveMessage::GetDefaultAreaMap()
 {
-	{Diamond,					CardTags::Diamond()		},
-	{Club,						CardTags::Club()		},
-	{Heart,						CardTags::Heart()		},
-	{Spade,						CardTags::Spade()		}
-};
+	// 函数内静态：首次调用时构造，此时原生标签必然已注册完毕
+	static const TMap<FString, FGameplayTag> DefaultArea = {
+		{Hand,						CardTags::Hand		},
+		{Discard,					CardTags::Discard	},
+		{Equipment,					CardTags::Equipment	},
+		{Pile,						CardTags::Pile		},
+		{Judgement,					CardTags::Judgement	},
+		{Cache,						CardTags::Cache		},
+		{Used,						CardTags::Used		},
+	};
+	return DefaultArea;
+}
+
+const TMap<FString, FGameplayTag>& CardMessage::FMoveMessage::GetSuitMap()
+{
+	static const TMap<FString, FGameplayTag> SuitMap = {
+		{Diamond,					CardTags::Diamond	},
+		{Club,						CardTags::Club		},
+		{Heart,						CardTags::Heart		},
+		{Spade,						CardTags::Spade	}
+	};
+	return SuitMap;
+}
 
 CardMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 {
 	Count = 1;
-	FromArea = CardTags::Pile();
-	ToArea = CardTags::Hand();
+	FromArea = CardTags::Pile;
+	ToArea = CardTags::Hand;
 	bConsiderAsDiscard = Msg.Find(Discard) != INDEX_NONE;
 	OutOrder = EOrder::Top;
 	FString Temp {};
@@ -98,11 +109,11 @@ CardMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 		}
 		else
 		{
-			FromArea = DefaultArea[*Temp];
+			FromArea = GetDefaultAreaMap()[*Temp];
 		}
 	}
 	if (bConsiderAsDiscard)
-		ToArea = CardTags::Discard();
+		ToArea = CardTags::Discard;
 	else if (Find(To))
 	{
 		if (Temp == Special && FindA(Area))
@@ -112,7 +123,7 @@ CardMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 		}
 		else
 		{
-			ToArea = DefaultArea[*Temp];
+			ToArea = GetDefaultAreaMap()[*Temp];
 		}
 	}
 	if (Find(Order))
@@ -232,7 +243,7 @@ CardMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 						}
 						else if (CK == Suit)
 						{
-							FGameplayTag SuitValue = SuitMap[CV];
+							FGameplayTag SuitValue = GetSuitMap()[CV];
 							UE_LOG(LogCard, Log, TEXT("[Message][Move][Suit] Current Value is %s "),*SuitValue.ToString())
 
 							if (Card.HasTag(SuitValue))
@@ -247,7 +258,7 @@ CardMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 
 							for (const FGameplayTag& Tag : Card.GetGameplayTagArray())
 							{
-								if (Tag.MatchesTag(CardTags::Point()))
+								if (Tag.MatchesTag(CardTags::Point))
 									if (TagToPoint(Tag) < MaxValue) return true;
 							}
 						}
@@ -258,7 +269,7 @@ CardMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 
 							for (const FGameplayTag& Tag : Card.GetGameplayTagArray())
 							{
-								if (Tag.MatchesTag(CardTags::Point()))
+								if (Tag.MatchesTag(CardTags::Point))
 									if (TagToPoint(Tag) > MinValue) return true;
 							}
 						}
@@ -283,17 +294,6 @@ CardMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 	
 	UE_LOG(LogCard, Log, TEXT("[Message][Move] Constructed new message info: Count = %d, From %s, To %s%s"),
 		Count, *FromArea.ToString(), *ToArea.ToString(), bConsiderAsDiscard ? TEXT(", this is a discard") : TEXT(""))
-		
-	FGameplayTagContainer Container{};
-	Container.AddTag(CARD(Kill.Physical));
-	Container.AddTag(CardTags::Club());
-	Container.AddTag(CardTags::Point<'9'>());
-	auto b = Predicate(Container);
-
-	if (b)
-	{
-		TUniquePtr<FGameplayTagContainer> NewContainer = MakeUnique<FGameplayTagContainer>();
-	}
 }
 
 bool CardMessage::FMoveMessage::operator()(const FGameplayTagContainer& Card) const
@@ -312,8 +312,4 @@ TArray<FGameplayTagContainer> CardMessage::FMoveMessage::operator()(const TArray
 		
 	return RetArr;
 };
-
-
-
-CardMessage::FMoveMessage Msg(TEXT("NUM=1 CONDITION:CLASS=Card.Class.Kill SUIT=/C MIN=8*"));
 
