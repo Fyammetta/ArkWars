@@ -4,7 +4,6 @@
 #include "Engine/DataTable.h"
 #include "Engine/Texture2D.h"
 #include "GameplayTagContainer.h"
-#include "ArkWarTableTypes.h"
 #include "ArkWarCardTypes.generated.h"
 
 class UCardComponentBase;

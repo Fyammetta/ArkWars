@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "ArkWarFlowTypes.h"
 #include "GameplayTagContainer.h"
 #include "Containers/Map.h"
 #include "Containers/UnrealString.h"
@@ -8,8 +9,10 @@
 #endif
 
 
-namespace CardMessage
+namespace GameMessage
 {
+	using Key = const TCHAR*;
+	
 	///
 	///	规则：
 	///	Msg 格式为："KEY1=VAL1 KEY2=VAL2 CONDITION:KEY3=VAL3 {KEY4=VAL4 KEY5=VAL5} [{KEY6=VAL6,KEY7=VAL7}]*"
@@ -21,17 +24,14 @@ namespace CardMessage
 	///	e.g. "NUM=5 FROM=-P TO=-S AREA=Skill.Foresee" 表示场上不少于5人时的观星技能
 	///	e.g. "NUM=3 CONDITION:CLASS=Card.Class.Kill [SUIT=/H] {MIN=8 MAX=4}*" 表示从牌堆抽取3张花色不为红桃的任意杀，点数在[A,4] ∪ [8,K]范围
 	///
-	
-	using Key = const TCHAR*;
-
-	enum EOrder
-	{
-		Top,
-		Botton,
-		Random
-	};
 	struct FMoveMessage
 	{
+		enum class EOrder
+		{
+			Top,
+			Botton,
+			Random
+		};
 #pragma region Keys
 		KEY	Num			= TEXT("NUM");			//用于非指定移动时，声明移动的数量，通常用于抽牌,不存在则视为1
 		KEY	From		= TEXT("FROM");			//用于指定实际的来源容器，如手牌、抽牌堆等,不存在则视为-P
@@ -66,12 +66,12 @@ namespace CardMessage
 		static const TMap<FString, FGameplayTag>& GetDefaultAreaMap();
 		static const TMap<FString, FGameplayTag>& GetSuitMap();
 	public:
-		FString MetaInfo;
-		int32 Count;
-		bool bConsiderAsDiscard;
-		EOrder OutOrder;
-		FGameplayTag FromArea;
-		FGameplayTag ToArea;
+		FString _Meta;
+		int32 _Count;
+		bool _bDiscard;
+		EOrder _Order;
+		FGameplayTag _From;
+		FGameplayTag _To;
 		TFunction<bool(const FGameplayTagContainer&)> Predicate;
 
 		FMoveMessage(const FString& Msg);
@@ -80,17 +80,62 @@ namespace CardMessage
 		
 		TArray<FGameplayTagContainer> operator()(const TArray<FGameplayTagContainer>& Cards) const;
 	};
-
-	struct Phase
+	
+	///
+	///	规则：
+	///	Msg 格式为："KEY1=VAL1 KEY2=VAL2 KEY3=VAL3"
+	///	无判定性KEY，当操作需要额外参数时，必须填入，否则无视
+	///	存在PHASE=/PLAYER=时，只在特定阶段/特定玩家处触发
+	///
+	struct FPhaseMessage
 	{
+		enum class EOperation
+		{
+			Continue,
+			Skip,
+			Extra,
+			Jump
+		};
+		
+		static constexpr EGamePhase AnyPhase = EGamePhase::GameStart;
 #pragma region Keys
-		
-		KEY Skip		= TEXT("SKIP");			//跳过特定阶段，直接进入下一个阶段
-		KEY Extra		= TEXT("EXTRA");		//获得额外阶段
-		KEY Jump		= TEXT("JUMP");			//跳至特定阶段
-		
+		KEY Phase		= TEXT("PHASE");		//允许执行的阶段
+		KEY Player		= TEXT("PLAYER");		//允许执行的玩家
+		KEY Operation	= TEXT("OP");			//需要执行的操作，默认为-C
+		KEY Continue	= TEXT("-C");			//继续
+		KEY Skip		= TEXT("-S");			//跳过特定阶段，直接进入下一个阶段
+		KEY Extra		= TEXT("-E");			//获得额外阶段
+		KEY Jump		= TEXT("-J");			//跳至特定阶段
+		KEY Target		= TEXT("TARGET");		//若为Jump/Extra,需要写入相应的阶段
+		KEY Begin		= TEXT("-B");			//开始阶段
+		KEY Prepare		= TEXT("-P");			//准备阶段
+		KEY Judgement	= TEXT("-J");			//判定阶段
+		KEY Draw		= TEXT("-D");			//摸牌阶段
+		KEY Action		= TEXT("-A");			//行动阶段
+		KEY Discard		= TEXT("-L");			//弃牌阶段
+		KEY Finish		= TEXT("-F");			//结束阶段
 		
 #pragma endregion
+		EOperation _Op;
+		EGamePhase _Target;
+		EGamePhase _Phase;		// GameStart 表示不设阶段限制
+		int32 _Player;			// INDEX_NONE 表示不设玩家限制
+		FPhaseMessage() : _Op(EOperation::Continue), _Target(EGamePhase::GameStart), _Phase(EGamePhase::GameStart), _Player(INDEX_NONE) {};
+
+		FPhaseMessage(const FString& Msg);
+
+		/**
+		 *	判定本指令此刻是否允许执行
+		 *	阶段判定：_Phase 为 GameStart 则不限；否则仅当 Current 的下一阶段恰为 _Phase 对应的 Pre 阶段时通过
+		 *	玩家判定：_Player 为 INDEX_NONE 则不限；否则须与当前活跃玩家一致
+		 *	@param Current		当前所处阶段
+		 *	@param ActivePlayer	当前活跃玩家的座次
+		 *	@return				两者皆通过时返回真
+		 */
+		bool CanExecute(EGamePhase Current, int32 ActivePlayer) const;
+	private:
+		//	静态表延迟到首次调用时构造，仿照 FMoveMessage 的形态
+		static const TMap<FString, EGamePhase>& GetPhaseMap();
 	};
 }
 

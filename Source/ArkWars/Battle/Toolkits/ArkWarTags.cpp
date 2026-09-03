@@ -28,7 +28,7 @@ namespace CardTags
 	UE_DEFINE_GAMEPLAY_TAG(Point7, "Card.Point.7");
 	UE_DEFINE_GAMEPLAY_TAG(Point8, "Card.Point.8");
 	UE_DEFINE_GAMEPLAY_TAG(Point9, "Card.Point.9");
-	UE_DEFINE_GAMEPLAY_TAG(PointX, "Card.Point.X");
+	UE_DEFINE_GAMEPLAY_TAG(Point10, "Card.Point.X");
 	UE_DEFINE_GAMEPLAY_TAG(PointJ, "Card.Point.J");
 	UE_DEFINE_GAMEPLAY_TAG(PointQ, "Card.Point.Q");
 	UE_DEFINE_GAMEPLAY_TAG(PointK, "Card.Point.K");
@@ -53,7 +53,7 @@ namespace CardTags
 			case '7':	return Point7;
 			case '8':	return Point8;
 			case '9':	return Point9;
-			case 'X':	return PointX;
+			case 'X':	return Point10;
 			case 'J':	return PointJ;
 			case 'Q':	return PointQ;
 			case 'K':	return PointK;
@@ -74,7 +74,7 @@ namespace CardTags
 			case 7:		return Point7;
 			case 8:		return Point8;
 			case 9:		return Point9;
-			case 10:	return PointX;
+			case 10:	return Point10;
 			case 11:	return PointJ;
 			case 12:	return PointQ;
 			case 13:	return PointK;
@@ -85,24 +85,24 @@ namespace CardTags
 
 namespace GameModeTags
 {
-	UE_DEFINE_GAMEPLAY_TAG(Default, "Gamemode.Default");
+	UE_DEFINE_GAMEPLAY_TAG(Default,			"GameMode.Default");
 }
 
 namespace VoiceTags
 {
-	UE_DEFINE_GAMEPLAY_TAG(Root, "Voice.Event");
-	UE_DEFINE_GAMEPLAY_TAG(Select, "Voice.Event.Select");
-	UE_DEFINE_GAMEPLAY_TAG(CardPlay, "Voice.Event.CardPlay");
-	UE_DEFINE_GAMEPLAY_TAG(Damage, "Voice.Event.Damage");
-	UE_DEFINE_GAMEPLAY_TAG(Dying, "Voice.Event.Dying");
-	UE_DEFINE_GAMEPLAY_TAG(Death, "Voice.Event.Death");
-	UE_DEFINE_GAMEPLAY_TAG(Victory, "Voice.Event.Victory");
+	UE_DEFINE_GAMEPLAY_TAG(Root,			"Voice.Event");
+	UE_DEFINE_GAMEPLAY_TAG(Select,			"Voice.Event.Select");
+	UE_DEFINE_GAMEPLAY_TAG(CardPlay,		"Voice.Event.CardPlay");
+	UE_DEFINE_GAMEPLAY_TAG(Damage,			"Voice.Event.Damage");
+	UE_DEFINE_GAMEPLAY_TAG(Dying,			"Voice.Event.Dying");
+	UE_DEFINE_GAMEPLAY_TAG(Death,			"Voice.Event.Death");
+	UE_DEFINE_GAMEPLAY_TAG(Victory,			"Voice.Event.Victory");
 }
 
 namespace IdentityTags
 {
-	UE_DEFINE_GAMEPLAY_TAG(Commander, "Identity.Commander");
-	UE_DEFINE_GAMEPLAY_TAG(Operator, "Identity.Operator");
-	UE_DEFINE_GAMEPLAY_TAG(Spy, "Identity.Spy");
-	UE_DEFINE_GAMEPLAY_TAG(Raider, "Identity.Raider");
+	UE_DEFINE_GAMEPLAY_TAG(Commander,		"Identity.Commander");
+	UE_DEFINE_GAMEPLAY_TAG(Operator,		"Identity.Operator");
+	UE_DEFINE_GAMEPLAY_TAG(Spy,				"Identity.Spy");
+	UE_DEFINE_GAMEPLAY_TAG(Raider,			"Identity.Raider");
 }

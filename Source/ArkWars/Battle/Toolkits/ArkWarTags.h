@@ -46,7 +46,7 @@ namespace CardTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Point7)				// Card.Point.7
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Point8)				// Card.Point.8
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Point9)				// Card.Point.9
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(PointX)				// Card.Point.X
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Point10)				// Card.Point.X
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(PointJ)				// Card.Point.J
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(PointQ)				// Card.Point.Q
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(PointK)				// Card.Point.K

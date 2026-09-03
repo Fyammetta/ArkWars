@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
 #include "GameplayTagContainer.h"
-#include "ArkWarTableTypes.h"
 #include "ArkWarSkillTypes.generated.h"
 
 class USkillComponentBase;
