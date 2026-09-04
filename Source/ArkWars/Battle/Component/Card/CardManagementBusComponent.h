@@ -52,27 +52,17 @@ public:
 	bool CanPutInJudgement(const FGameplayTagContainer& Card) const;
 	
 	void EquipCard(const FGameplayTagContainer& Card);
+	void HandleJudgement();
 	
 	virtual void MoveIn(ICardContainerInterface* From, TArray<FGameplayTagContainer>&& Cards, const FString& Msg) override;
 	
 	virtual void MoveOut(ICardContainerInterface* To, const TArray<FGameplayTagContainer>& Cards, const FString& Msg) override;
 	
-	
-	///Filter
-	/**
-	 *	获取当前组件中所有的卡牌
-	 *	@param OutCards				输出：所有的卡牌
-	 *	@return						输出：当前组件持有的所有卡牌的数量
-	 */
-	int32 GetCards(TArray<FGameplayTagContainer>& OutCards) const;
 
-	/**
-	 *	通用的卡牌获取方式，获取当前组件中满足指定条件的所有卡牌(包括被转化或视为的卡牌)
-	 *	@param Predicate			筛选策略，若计算返回为真，则视为满足条件
-	 *	@param OutCards				输出：当前组件中满足条件的所有卡牌(包括被转化或视为的卡牌)
-	 *	@return						输出：当前组件满足条件的卡牌的数量
-	 */
-	int32 GetCardByPredicate(const TFunction<bool(const FGameplayTagContainer&)>& Predicate, TArray<FGameplayTagContainer>& OutCards) const;
+	
+	virtual TArray<FGameplayTag> GetAreaKeys() const override;
+	
+	virtual TArray<FGameplayTagContainer> GetCardsByKey(const FGameplayTag& Key) const override;
 	
 	void SetCardOrder(const TArray<int32>& NewOrder);
 	

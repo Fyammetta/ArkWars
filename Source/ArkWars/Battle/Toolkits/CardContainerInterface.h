@@ -24,4 +24,8 @@ class ARKWARS_API ICardContainerInterface
 public:
 	virtual void MoveIn(ICardContainerInterface* From, TArray<FGameplayTagContainer>&& Cards, const FString& Msg) = 0;
 	virtual void MoveOut(ICardContainerInterface* To, const TArray<FGameplayTagContainer>& Cards, const FString& Msg) = 0;
+	
+	virtual TArray<FGameplayTagContainer> GetCardsByKey(const FGameplayTag& Key) const = 0;
+	
+	virtual TArray<FGameplayTag> GetAreaKeys() const = 0;
 };

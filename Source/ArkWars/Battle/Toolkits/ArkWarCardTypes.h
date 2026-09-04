@@ -70,7 +70,7 @@ struct FCardAreaSlot
 {
 	GENERATED_BODY()
 
-	friend class FCardAreaSlotFactory;
+	friend struct FCardAreaSlotFactory;
 protected:
 	UPROPERTY(BlueprintReadOnly)
 	FGameplayTag Area;
@@ -103,11 +103,11 @@ public:
 	const FGameplayTag& GetAreaKey() const { return Area; }
 };
 
-class FCardAreaSlotFactory
+struct FCardAreaSlotFactory
 {
 	static FCardAreaSlot CreateEquipmentSlot(const FGameplayTag& Key);
 
 	static FCardAreaSlot CreateJudgementSlot(const FGameplayTagContainer& Card);
 
-	static FCardAreaSlot CreateSpecialSlot(const FGameplayTag& Key, int32 Capacity);
+	static FCardAreaSlot CreateSpecialSlot(const FGameplayTag& Key, int32 Capacity = 1);
 };

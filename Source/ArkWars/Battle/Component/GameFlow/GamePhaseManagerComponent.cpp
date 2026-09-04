@@ -39,10 +39,11 @@ void UGamePhaseManagerComponent::SetPhase(EGamePhase Phase)
 	
 	if (Phase == EGamePhase::Finish)
 	{
-		FinishedPlayerIndex.Add(ActivePlayerIndex);
+		SetNextPlayerActive();
+		FinishedPlayerIndex.AddUnique(ActivePlayerIndex);
 		if (FinishedPlayerIndex.Num() == PlayersInOrder.Num())
 		{
-			FinishedPlayerIndex.Empty();
+			FinishedPlayerIndex.Reset(PlayersInOrder.Num());
 			BroadcastRoundRefresh();
 		}
 	}
@@ -57,11 +58,20 @@ void UGamePhaseManagerComponent::GetLifetimeReplicatedProps(TArray<class FLifeti
 	DOREPLIFETIME(UGamePhaseManagerComponent, CachedPhase);
 	DOREPLIFETIME(UGamePhaseManagerComponent, PlayersInOrder);
 	DOREPLIFETIME(UGamePhaseManagerComponent, ActivePlayerIndex);
+	DOREPLIFETIME(UGamePhaseManagerComponent, FinishedPlayerIndex);
 }
 
-void UGamePhaseManagerComponent::OnRep_Phase() const
+void UGamePhaseManagerComponent::OnRep_Phase()
 {
-	BroadcastPhaseChange();
+	//游戏开始的广播由 NetMulticast 执行
+	if (CurrentPhase == EGamePhase::GameStart)
+	{
+		NetMulticast_OnCalledStartGame();
+	}
+	else
+	{
+		BroadcastPhaseChange();
+	}
 }
 
 void UGamePhaseManagerComponent::BroadcastPhaseChange() const
@@ -69,9 +79,14 @@ void UGamePhaseManagerComponent::BroadcastPhaseChange() const
 	OnGamePhaseChanged.Broadcast(GamePhase::GetPhaseTag(CachedPhase), GamePhase::GetPhaseTag(CurrentPhase));
 }
 
-
 void UGamePhaseManagerComponent::SetNextPlayerActive(int32 Index)
 {
+	if (PlayersInOrder.IsEmpty())
+	{
+		
+		return;
+	}
+	
 	ActivePlayerIndex = Index == INDEX_NONE ? (ActivePlayerIndex + 1) % PlayersInOrder.Num() : Index % PlayersInOrder.Num();
 	BroadcastActivePlayerChange();
 }
@@ -79,37 +94,18 @@ void UGamePhaseManagerComponent::SetNextPlayerActive(int32 Index)
 void UGamePhaseManagerComponent::InitPlayers(int32 Start)
 {
 	auto GS = Cast<AGameStateBase>(GetOwner());
-	
+
 	if (!GS)
 	{
 		GS = GetWorld() ? GetWorld()->GetGameState() : nullptr;
 	}
-	if (!GS)
+	if (!GS || GS->PlayerArray.IsEmpty())
 	{
 		return;
 	}
 	PlayersInOrder = GS->PlayerArray;
-	auto Interface = Cast<IAbilitySystemInterface>(PlayersInOrder[Start]);
-	
-	if (Interface && Interface->GetAbilitySystemComponent())
-	{
-		auto ASC = Interface->GetAbilitySystemComponent();
-		if (ASC->HasMatchingGameplayTag(IdentityTags::Commander))
-			ActivePlayerIndex = Start;
-		else
-		{
-			for (APlayerState* Player : PlayersInOrder)
-			{
-				auto Target = Cast<IAbilitySystemInterface>(Player);
-				auto Comp = Target ? Target->GetAbilitySystemComponent() : nullptr;
-				if (Comp && Comp->HasMatchingGameplayTag(IdentityTags::Commander))
-				{
-					ActivePlayerIndex = PlayersInOrder.Find(Player);
-					return;
-				}
-			}
-		}
-	}
+	ActivePlayerIndex = Start % PlayersInOrder.Num();
+	FinishedPlayerIndex.Reset(PlayersInOrder.Num());
 }
 
 int32 UGamePhaseManagerComponent::GetPlayerIndex(APlayerState* Player) const
@@ -117,6 +113,18 @@ int32 UGamePhaseManagerComponent::GetPlayerIndex(APlayerState* Player) const
 	if (!Player) return ActivePlayerIndex;
 	
 	return PlayersInOrder.Find(Player);
+}
+
+APlayerState* UGamePhaseManagerComponent::GetPlayerByIndex(int32 Index) const
+{
+	Index = PlayersInOrder.IsValidIndex(Index) ? ActivePlayerIndex : Index % PlayersInOrder.Num();
+		
+	return PlayersInOrder[Index];
+}
+
+int32 UGamePhaseManagerComponent::GetPlayerCount() const
+{
+	return PlayersInOrder.Num();
 }
 
 void UGamePhaseManagerComponent::OnRep_ActivePlayerIndex() const
@@ -141,4 +149,26 @@ void UGamePhaseManagerComponent::BroadcastActivePlayerChange() const
 
 void UGamePhaseManagerComponent::BroadcastRoundRefresh() const
 {
+}
+
+void UGamePhaseManagerComponent::NetMulticast_OnCalledStartGame_Implementation()
+{
+	BroadcastPhaseChange();
+
+}
+
+void UGamePhaseManagerComponent::OnCalledStartGame()
+{
+	if (!GetOwner()->HasAuthority()) return;
+
+	if (CurrentPhase != EGamePhase::GameStart || CachedPhase != EGamePhase::GameStart )
+	{
+		CurrentPhase = EGamePhase::GameStart;
+		CachedPhase = EGamePhase::GameStart;
+		NetMulticast_OnCalledStartGame_Implementation();
+	}
+	else
+	{
+		NetMulticast_OnCalledStartGame();
+	}
 }

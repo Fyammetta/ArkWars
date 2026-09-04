@@ -29,7 +29,8 @@ class ARKWARS_API UGamePhaseManagerComponent : public UActorComponent
 	UPROPERTY(ReplicatedUsing=OnRep_ActivePlayerIndex)
 	int32 ActivePlayerIndex = INDEX_NONE;
 	
-	TSet<int32> FinishedPlayerIndex;
+	UPROPERTY(Replicated)
+	TArray<int32> FinishedPlayerIndex;
 public:
 	// Sets default values for this component's properties
 	UGamePhaseManagerComponent();
@@ -46,9 +47,13 @@ public:
 	
 	void InitPlayers(int32 Start);
 	int32 GetPlayerIndex(APlayerState* Player = nullptr) const;
+	APlayerState* GetPlayerByIndex(int32 Index = INDEX_NONE) const;
+	int32 GetPlayerCount() const;
+	
+	void OnCalledStartGame();
 private:
 	UFUNCTION()
-	void OnRep_Phase() const;
+	void OnRep_Phase();
 	
 	void BroadcastPhaseChange() const;
 
@@ -61,4 +66,8 @@ private:
 	void BroadcastActivePlayerChange() const;
 	
 	void BroadcastRoundRefresh() const;
+	
+	UFUNCTION(Reliable, NetMulticast)
+	void NetMulticast_OnCalledStartGame();
+
 };

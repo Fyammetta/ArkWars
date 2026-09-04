@@ -63,7 +63,7 @@ void UCardManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 			*Map.Add(Row.CardTag) = Row;
 		});
 	
-	CardData->ForeachRow<FCardComponentMapping>(TEXT("[UCardManagerSubsystem][Initialize][Component]"),
+	CardMapping->ForeachRow<FCardComponentMapping>(TEXT("[UCardManagerSubsystem][Initialize][Component]"),
 	[&Map = InfoMapping](const FName& Key, const FCardComponentMapping& Row)->void
 	{
 		if (Row.Comp && Row.Comp->GetDefaultObject()->IsA(UCardComponentBase::StaticClass()) && Map.Contains(Row.Tag))

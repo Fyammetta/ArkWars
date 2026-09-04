@@ -4,7 +4,6 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "ArkWars/ArkWars.h"
-#include "ArkWars/Battle/Core/BattleGameState.h"
 #include "ArkWars/Battle/System/BattleGameFlowSubsystem.h"
 #include "ArkWars/Battle/Toolkits/ArkWarTags.h"
 #include "ArkWars/Battle/Toolkits/BattleFunctionLibrary.h"
@@ -33,6 +32,17 @@ namespace
 		RetVal.Add(IdentityTags::Commander);
 		return RetVal;
 	}
+}
+
+UGameModeComponentBase* UGameModeComponentBase::GetCurrentGameMode(UObject* WorldContextObject)
+{
+	auto GM = WorldContextObject->GetWorld() ? WorldContextObject->GetWorld()->GetAuthGameMode() : nullptr;
+	if (!GM)
+	{
+		return nullptr;
+	}
+	return GM->FindComponentByClass<UGameModeComponentBase>();
+
 }
 
 void UGameModeComponentBase::InitCardDeck()
@@ -94,5 +104,10 @@ void UGameModeComponentBase::AllocateIdentity()
 			Identity = Identities.Pop();
 		}
 	}
+}
+
+int32 UGameModeComponentBase::GetStartCardNum(UAbilitySystemComponent*)
+{
+	return 4;
 }
 

@@ -31,12 +31,12 @@ class ARKWARS_API ACardTableManager : public AActor , public ICardContainerInter
 	UPROPERTY(Replicated)
 	TArray<APlayerState*> CardSource;
 	
-	//被打出的牌会进入此区域，弃牌阶段开始前以至弃牌区并不触发弃牌事件,UI设计上只显示最新的一张，可以手动展开显示全部
-	UPROPERTY(ReplicatedUsing=OnRep_PlayedAreaChanged)
+	//抽牌堆，默认以数组尾端作为牌堆顶
+	UPROPERTY(ReplicatedUsing=OnRep_PileAreaChanged)
 	TArray<FGameplayTagContainer> PileArea;
 	
 	//被打出的牌会进入此区域，弃牌阶段开始前以至弃牌区并不触发弃牌事件,UI设计上只显示最新的一张，可以手动展开显示全部
-	UPROPERTY(ReplicatedUsing=OnRep_PlayedAreaChanged)
+	UPROPERTY(ReplicatedUsing=OnRep_DiscardAreaChanged)
 	TArray<FGameplayTagContainer> DiscardArea;
 	
 public:
@@ -58,13 +58,22 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UFUNCTION()
-	void OnRep_CachedAreaChanged();
+	virtual void OnRep_CachedAreaChanged();
 	
 	UFUNCTION()
-	void OnRep_PlayedAreaChanged();
+	virtual void OnRep_PlayedAreaChanged();
+	
+	UFUNCTION()
+	virtual void OnRep_PileAreaChanged();
+	
+	UFUNCTION()
+	virtual void OnRep_DiscardAreaChanged();
 	
 	virtual void MoveIn(ICardContainerInterface* From, TArray<FGameplayTagContainer>&& Cards, const FString& Msg) override;
 	
 	virtual void MoveOut(ICardContainerInterface* To, const TArray<FGameplayTagContainer>& Cards, const FString& Msg) override;
+	
+	virtual TArray<FGameplayTagContainer> GetCardsByKey(const FGameplayTag& Key) const override;
+	virtual TArray<FGameplayTag> GetAreaKeys() const override;
 };
 

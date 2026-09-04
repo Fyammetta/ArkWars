@@ -26,7 +26,7 @@ UCardComponentBase::~UCardComponentBase()
 
 UCardComponentBase* UCardComponentBase::Get(AActor* Owner, const FGameplayTag& CardTag)
 {
-	if (!Owner || Owner->HasAuthority())
+	if (!Owner || !Owner->HasAuthority())
 	{
 		UE_LOG(LogCard, Warning, TEXT("[UCardComponentBase][Get] Component can only be found on server"))
 		return nullptr;		

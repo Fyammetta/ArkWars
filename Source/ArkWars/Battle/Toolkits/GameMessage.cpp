@@ -98,15 +98,11 @@ const TMap<FString, EGamePhase>& GameMessage::FPhaseMessage::GetPhaseMap()
 	return PhaseMap;
 }
 
-
-
-
 GameMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 {
 	_Count = 1;
 	_From = CardTags::Pile;
 	_To = CardTags::Hand;
-	_bDiscard = Msg.Find(Discard) != INDEX_NONE;
 	_Order = EOrder::Top;
 	if (Msg.IsEmpty()) return;
 	
@@ -147,9 +143,7 @@ GameMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 			_From = GetDefaultAreaMap()[*Temp];
 		}
 	}
-	if (_bDiscard)
-		_To = CardTags::Discard;
-	else if (Find(To))
+	if (Find(To))
 	{
 		if (Temp == Special && FindA(Area))
 		{
@@ -161,6 +155,9 @@ GameMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 			_To = GetDefaultAreaMap()[*Temp];
 		}
 	}
+
+	_bDiscard = Msg.Find(IsDiscard) && FCString::Atoi(*Temp);
+
 	if (Find(Order))
 	{
 		if (Temp == Random) _Order = EOrder::Random;

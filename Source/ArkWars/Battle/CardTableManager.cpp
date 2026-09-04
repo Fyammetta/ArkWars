@@ -2,7 +2,11 @@
 
 
 #include "CardTableManager.h"
+
+#include "HeadMountedDisplayTypes.h"
 #include "Net/UnrealNetwork.h"
+#include "Toolkits/ArkWarTags.h"
+#include "Toolkits/GameMessage.h"
 
 TStrongObjectPtr<ACardTableManager> ACardTableManager::Instance = nullptr;
 
@@ -18,6 +22,9 @@ void ACardTableManager::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
 	
 	DOREPLIFETIME(ACardTableManager, CachedArea)
 	DOREPLIFETIME(ACardTableManager, PlayedArea)
+	DOREPLIFETIME(ACardTableManager, CardSource)
+	DOREPLIFETIME(ACardTableManager, PileArea)
+	DOREPLIFETIME(ACardTableManager, DiscardArea)
 }
 
 ACardTableManager* ACardTableManager::Get(UWorld* World)
@@ -66,6 +73,14 @@ void ACardTableManager::OnRep_PlayedAreaChanged()
 {
 }
 
+void ACardTableManager::OnRep_PileAreaChanged()
+{
+}
+
+void ACardTableManager::OnRep_DiscardAreaChanged()
+{
+}
+
 void ACardTableManager::MoveIn(ICardContainerInterface* From, TArray<FGameplayTagContainer>&& Cards, const FString& Msg)
 {
 	if (!HasAuthority()) return;
@@ -74,4 +89,22 @@ void ACardTableManager::MoveIn(ICardContainerInterface* From, TArray<FGameplayTa
 void ACardTableManager::MoveOut(ICardContainerInterface* To, const TArray<FGameplayTagContainer>& Cards, const FString& Msg)
 {
 	if (!HasAuthority()) return;
+}
+
+TArray<FGameplayTagContainer> ACardTableManager::GetCardsByKey(const FGameplayTag& Key) const
+{
+	using namespace CardTags;
+
+	if (Key == Pile)	return PileArea;
+	if (Key == Discard) return DiscardArea;
+	if (Key == Cache)	return CachedArea;
+	if (Key == Used)	return PlayedArea;
+	
+	return {};
+}
+
+TArray<FGameplayTag> ACardTableManager::GetAreaKeys() const
+{
+	using namespace CardTags;
+	return {Pile, Discard, Cache, Used};
 }

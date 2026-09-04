@@ -89,7 +89,6 @@ void UCardManagementBusComponent::ClearTargetsSelection(APlayerState* Target)
 	SelectedPlayers.Remove(Target);
 }
 
-
 bool UCardManagementBusComponent::CanPutInJudgement(const FGameplayTagContainer& Card) const
 {
 	return false;
@@ -99,8 +98,9 @@ void UCardManagementBusComponent::EquipCard(const FGameplayTagContainer& Card)
 {
 }
 
-
-
+void UCardManagementBusComponent::HandleJudgement()
+{
+}
 
 void UCardManagementBusComponent::SetCardOrder(const TArray<int32>& NewOrder)
 {
@@ -114,23 +114,75 @@ void UCardManagementBusComponent::MoveOut(ICardContainerInterface* To, const TAr
 {
 }
 
-
-
-int32 UCardManagementBusComponent::GetCards(TArray<FGameplayTagContainer>& OutCards) const
+TArray<FGameplayTag> UCardManagementBusComponent::GetAreaKeys() const
 {
-	return GetCardByPredicate([](auto)->bool{return true; },OutCards);
-}
+	using namespace CardTags;
 
-int32 UCardManagementBusComponent::GetCardByPredicate(const TFunction<bool(const FGameplayTagContainer&)>& Predicate, TArray<FGameplayTagContainer>& OutCards) const
-{
-	OutCards.Empty();
-	for (auto Card : HandCards)
+	TArray<FGameplayTag> Arr = {Hand, Equipment, Judgement};
+	
+	auto Comps = GetOwner()->GetComponentsByInterface(UCardContainerInterface::StaticClass());
+	
+	for (auto Comp : Comps)
 	{
-		if (Predicate(Card))
-			OutCards.Add(Card);
+		if (auto Interface = Cast<ICardContainerInterface>(Comp))
+		{
+			Arr.Append(Interface->GetAreaKeys());
+		}
 	}
 	
-	return OutCards.Num();
+	return Arr;
+}
+
+TArray<FGameplayTagContainer> UCardManagementBusComponent::GetCardsByKey(const FGameplayTag& Key) const
+{
+	using namespace CardTags;
+	
+	if (Key == Hand)
+	{
+		return HandCards;
+	}
+	if (Key == Equipment)
+	{
+		TArray<FGameplayTagContainer> OutCards;
+
+		for (const FCardAreaSlot& Slot : EquipmentArea)
+		{
+			OutCards.Append(Slot.GetAll());
+		}
+		return OutCards;
+
+	}
+
+	if (Key == Judgement)
+	{
+		TArray<FGameplayTagContainer> OutCards;
+
+		for (const FCardAreaSlot& Slot : JudgementArea)
+		{
+			OutCards.Append(Slot.GetAll());
+		}
+		return OutCards;
+	}
+	
+	if (auto Comp = GetOwner()->FindComponentByTag(UActorComponent::StaticClass(), Key.GetTagName()))
+	{
+		if (auto Interface = Cast<ICardContainerInterface>(Comp))
+		{
+			return Interface->GetCardsByKey(Key);
+		}
+	}
+	
+	for (auto Comp : GetOwner()->GetComponentsByInterface(UCardContainerInterface::StaticClass()))
+	{
+		if (auto Interface = Cast<ICardContainerInterface>(Comp))
+		{
+			if (!Interface->GetAreaKeys().Contains(Key)) continue;
+			
+			return Interface->GetCardsByKey(Key);
+		}
+	}
+	
+	return {};
 }
 
 

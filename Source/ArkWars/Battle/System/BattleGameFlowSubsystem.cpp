@@ -2,10 +2,16 @@
 
 
 #include "BattleGameFlowSubsystem.h"
+
+#include "AbilitySystemInterface.h"
+#include "ArkWars/ArkWars.h"
+#include "ArkWars/Battle/Component/Card/CardManagementBusComponent.h"
 #include "ArkWars/Battle/Component/GameFlow/GamePhaseManagerComponent.h"
+#include "ArkWars/Battle/Component/GameMode/GameModeComponentBase.h"
 #include "ArkWars/Battle/Toolkits/ArkWarFlowTypes.h"
 #include "ArkWars/Battle/Toolkits/GameMessage.h"
 #include "GameFramework/GameStateBase.h"
+#include "GameFramework/PlayerState.h"
 
 bool UBattleGameFlowSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
@@ -25,24 +31,36 @@ bool UBattleGameFlowSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 void UBattleGameFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	
+	CardManager = nullptr;
 }
 
 void UBattleGameFlowSubsystem::Deinitialize()
 {
 	Super::Deinitialize();
+	
+	CardManager = nullptr;
 }
 
 void UBattleGameFlowSubsystem::InitPlayerOrder(int32 StartIndex)
 {
+	
+	if (!IsRunningOnServer())
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][InitPlayerOrder] Initialization should only be run on server"))
+		return;
+	};
 	auto Comp = GetPhaseManager();
 	if (!Comp)
 	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][InitPlayerOrder] Fail to init player order, phase manager was not found"))
+
 		return;
 	}
 	Comp->InitPlayers(StartIndex);
 }
 
-int32 UBattleGameFlowSubsystem::GetPlayerIndex(APlayerState* Player)
+int32 UBattleGameFlowSubsystem::GetPlayerIndex(APlayerState* Player) const
 {
 	if (auto Comp = GetPhaseManager())
 	{
@@ -52,15 +70,15 @@ int32 UBattleGameFlowSubsystem::GetPlayerIndex(APlayerState* Player)
 	return INDEX_NONE;
 }
 
-void UBattleGameFlowSubsystem::RegisterManagerActor(AActor* Actor)
+void UBattleGameFlowSubsystem::RegisterManagerActor(ICardContainerInterface* Mgr)
 {
-	if (Actor && !ManagerActor)
-		ManagerActor = Actor;
+	if (Mgr && !CardManager)
+		CardManager = Mgr->_getUObject();
 }
 
-AActor* UBattleGameFlowSubsystem::GetManagerActor() const
+ICardContainerInterface* UBattleGameFlowSubsystem::GetCardManager() const
 {
-	return ManagerActor;
+	return CardManager ?  CardManager.GetInterface() : nullptr;
 }
 
 bool UBattleGameFlowSubsystem::IsRunningOnServer() const
@@ -71,6 +89,8 @@ bool UBattleGameFlowSubsystem::IsRunningOnServer() const
 void UBattleGameFlowSubsystem::PushPhaseResolvation(const FString& Msg)
 {	
 	PhaseMsgQueue.Add(Msg);
+	UE_LOG(LogGamePlay, Log, TEXT("[GameFlow][PushPhaseResolvation] Enqueue a new phase message"))
+
 }
 
 UGamePhaseManagerComponent* UBattleGameFlowSubsystem::GetPhaseManager() const
@@ -122,6 +142,7 @@ namespace
 		}
 	}
 }
+
 EGamePhase UBattleGameFlowSubsystem::ResolveNextPhase(EGamePhase Current)
 {
 	using EOP = GameMessage::FPhaseMessage::EOperation;
@@ -133,6 +154,7 @@ EGamePhase UBattleGameFlowSubsystem::ResolveNextPhase(EGamePhase Current)
 			Index++;
 			continue;
 		}
+		UE_LOG(LogGamePlay, Log, TEXT("[GameFlow][ResolveNextPhase] Found available Message"))
 
 		const GameMessage::FPhaseMessage Mod = PhaseMsgQueue[Index];
 		PhaseMsgQueue.RemoveAt(Index);
@@ -167,21 +189,33 @@ EGamePhase UBattleGameFlowSubsystem::ResolveNextPhase(EGamePhase Current)
 	return NextInSequence(Current);
 }
 
-void UBattleGameFlowSubsystem::Advance(EGamePhase Phase, int32 Index)
+void UBattleGameFlowSubsystem::Advance(EGamePhase Phase, int32 Index) const
 {
-	if (!IsRunningOnServer()) return;
+	if (!IsRunningOnServer())
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][Advance] Game Phase should only be advanced on server"))
+		return;
+	};
 	
 	auto Comp = GetPhaseManager();
 	
-	if (!Comp) return;
-	
-	Comp->SetNextPlayerActive(Index);
+	if (!Comp)
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][Advance] Phase manager was lost, failed to advance"))
+		return;
+	};
+	if (Index != INDEX_NONE)
+		Comp->SetNextPlayerActive(Index);
 	Comp->SetPhase(Phase);
 }
 
 void UBattleGameFlowSubsystem::Advance()
 {
-	if (!IsRunningOnServer()) return;
+	if (!IsRunningOnServer())
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][Advance] Game Phase should only be advanced on server"))
+		return;
+	};
 	
 	auto Comp = GetPhaseManager();
 	
@@ -191,7 +225,7 @@ void UBattleGameFlowSubsystem::Advance()
 	{
 		Comp->SetPhase(Next);
 		
-		if (Next == EGamePhase::Begin || Next == EGamePhase::Finish || !IsPreOrPost(Next))
+		if (Next == EGamePhase::Begin || Next == EGamePhase::Finish || IsPreOrPost(Next))
 		{
 			Next = NextInSequence(Next);
 			continue;
@@ -199,4 +233,72 @@ void UBattleGameFlowSubsystem::Advance()
 		break;
 	}
 	
+}
+
+void UBattleGameFlowSubsystem::StartGame()
+{
+	if (!IsRunningOnServer())
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][StartGame] Game should NEVER be start by client"))
+		return;
+	};
+	
+	auto ModeComp = UGameModeComponentBase::GetCurrentGameMode(this);
+	auto PhaseComp = GetPhaseManager();
+	auto Manager = GetCardManager();
+	
+	if (!Manager || !PhaseComp || !ModeComp)
+	{
+		UE_LOG(LogGamePlay, Warning, 
+			TEXT("[GameFlow][StartGame] Sub managers were lost, fail to start game.	\nDetails: <Mode:%hs>\t<Phase:%hs>\t<Card:%hs>"),
+			(ModeComp ? "true" : "false"), (PhaseComp ? "true" : "false"), (Manager ? "true" : "false"));
+		return;
+	};
+	
+	//分配身份
+	ModeComp->AllocateIdentity();
+	UE_LOG(LogGamePlay, Log, TEXT("[GameFlow][StartGame] Identity allocated completely"))
+	//分发起始手牌
+	for (auto i = PhaseComp->GetPlayerIndex(); i < PhaseComp->GetPlayerIndex() + PhaseComp->GetPlayerCount() ; ++i)
+	{
+		auto Player = PhaseComp->GetPlayerByIndex(i);
+		auto Hand = Player->GetComponentByClass<UCardManagementBusComponent>();
+		using MSG = GameMessage::FMoveMessage;
+		auto Num = ModeComp->GetStartCardNum(Player->Implements<UAbilitySystemInterface>() ? Cast<IAbilitySystemInterface>(Player)->GetAbilitySystemComponent() : nullptr);
+		Manager->MoveOut(Hand, {}, FString::Printf(TEXT("%s=%d %s=%s %s=%s"),MSG::Num, Num, MSG::From, MSG::Pile, MSG::To, MSG::Hand));
+		
+		UE_LOG(LogGamePlay, Log, TEXT("[GameFlow][StartGame] Initial hand card allocated to %s"), *Player->GetPlayerNameCustom())
+	}
+
+	//广播游戏开始阶段通知
+	PhaseComp->OnCalledStartGame();
+	UE_LOG(LogGamePlay, Log, TEXT("[GameFlow][StartGame] Broadcast start game phase notify"))
+
+}
+
+void UBattleGameFlowSubsystem::EnqueueTransaction(UBattleTransaction* Tx)
+{
+	if (!IsRunningOnServer())
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][EnqueueTransaction] Transaction should only be added on server"))
+		return;
+	};
+}
+
+void UBattleGameFlowSubsystem::DriveTransaction()
+{
+	if (!IsRunningOnServer())
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][DriveTransaction] Process should only run on server"))
+		return;
+	};
+}
+
+void UBattleGameFlowSubsystem::OnTransactionFinished(UBattleTransaction* Tx)
+{
+	if (!IsRunningOnServer())
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][OnTransactionFinished] Transaction finish notify should only be broadcast on server"))
+		return;
+	};
 }

@@ -36,8 +36,9 @@ namespace GameMessage
 		KEY	Num			= TEXT("NUM");			//用于非指定移动时，声明移动的数量，通常用于抽牌,不存在则视为1
 		KEY	From		= TEXT("FROM");			//用于指定实际的来源容器，如手牌、抽牌堆等,不存在则视为-P
 		KEY	To			= TEXT("TO");			//用于指定实际的卡牌去向，如弃牌堆、装备区等,不存在则视为-H
+		KEY IsDiscard	= TEXT("DISCARD");		//若存在且值不为0，则被视为弃牌
 		KEY Hand		= TEXT("-AH");			//手牌区
-		KEY	Used		= TEXT("-AU");			//缓冲堆，使用后的卡牌进入其中，在出牌阶段结束后移动至弃牌堆并不触发弃牌事件
+		KEY	Used		= TEXT("-AU");			//缓冲堆
 		KEY	Discard		= TEXT("-AD");			//弃牌堆
 		KEY	Pile		= TEXT("-AP");			//抽牌堆
 		KEY	Equipment	= TEXT("-AE");			//装备区
