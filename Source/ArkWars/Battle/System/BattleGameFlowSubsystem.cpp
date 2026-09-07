@@ -265,7 +265,7 @@ void UBattleGameFlowSubsystem::StartGame()
 		auto Hand = Player->GetComponentByClass<UCardManagementBusComponent>();
 		using MSG = GameMessage::FMoveMessage;
 		auto Num = ModeComp->GetStartCardNum(Player->Implements<UAbilitySystemInterface>() ? Cast<IAbilitySystemInterface>(Player)->GetAbilitySystemComponent() : nullptr);
-		Manager->MoveOut(Hand, {}, FString::Printf(TEXT("%s=%d %s=%s %s=%s"),MSG::Num, Num, MSG::From, MSG::Pile, MSG::To, MSG::Hand));
+		//Manager->MoveOut(Hand, {}, FString::Printf(TEXT("%s=%d %s=%s %s=%s"),MSG::Num, Num, MSG::From, MSG::Pile, MSG::To, MSG::Hand));
 		
 		UE_LOG(LogGamePlay, Log, TEXT("[GameFlow][StartGame] Initial hand card allocated to %s"), *Player->GetPlayerNameCustom())
 	}

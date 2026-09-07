@@ -33,7 +33,14 @@ AActor* UBattleTransaction::GetInstigator()
 	return Instigator.IsValid() ? Instigator.Get() : nullptr;
 }
 
-AActor* UBattleTransaction::GetTarget()
+TArray<AActor*> UBattleTransaction::GetTarget()
 {
-	return Target.IsValid() ? Target.Get() : nullptr;
+	TArray<AActor*> Result;
+	for (TWeakObjectPtr<AActor> Actor : Target)
+	{
+		if (Actor.IsValid())
+			Result.Add(Actor.Get());
+	}
+	
+	return Result;
 }

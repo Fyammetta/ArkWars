@@ -81,17 +81,28 @@ void ACardTableManager::OnRep_DiscardAreaChanged()
 {
 }
 
-void ACardTableManager::MoveIn(ICardContainerInterface* From, TArray<FGameplayTagContainer>&& Cards, const FString& Msg)
+const FArkCard* ACardTableManager::GetCardById(int32 CardId) const
 {
-	if (!HasAuthority()) return;
+	return nullptr;
 }
 
-void ACardTableManager::MoveOut(ICardContainerInterface* To, const TArray<FGameplayTagContainer>& Cards, const FString& Msg)
+TArray<int32> ACardTableManager::Select(const FGameplayTag& Area, const FString& Msg) const
 {
-	if (!HasAuthority()) return;
+	return {};
 }
 
-TArray<FGameplayTagContainer> ACardTableManager::GetCardsByKey(const FGameplayTag& Key) const
+TArray<FArkCard> ACardTableManager::Consume(const FGameplayTag& Area, const TArray<int32>& CardIds) const
+{
+	return {};
+}
+
+EAreaWriteResult ACardTableManager::Add(const FGameplayTag& AreaKey, TArray<FArkCard>&& Cards, const FString& Msg)
+{
+	return EAreaWriteResult::Accepted;
+}
+
+
+TArray<FArkCard> ACardTableManager::GetCardsByKey(const FGameplayTag& Key) const
 {
 	using namespace CardTags;
 

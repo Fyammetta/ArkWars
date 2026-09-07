@@ -9,8 +9,39 @@
 class UCardComponentBase;
 
 /// 卡牌在规则层的表示：一张牌 = 一组标签（类别 / 花色 / 点数……）
+///	@deprecated	This is against to property replication and RPC, use FAckCard instead
 using FCard = TSharedPtr<FGameplayTagContainer>;
+///	@deprecated	This is against to property replication and RPC, use FAckCard instead
 using FConvertedCard = TWeakPtr<FGameplayTagContainer>;
+
+USTRUCT(BlueprintType)
+struct FArkCard
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadOnly)
+	int32 Identity;
+	
+	UPROPERTY(BlueprintReadOnly)
+	FGameplayTagContainer Card;
+	
+	bool operator==(const FArkCard& Other) const { return Identity == Other.Identity; }
+};
+
+UENUM(BlueprintType)
+enum class ECardInstanceKind :uint8 { Direct , Converted, Virtual };
+
+USTRUCT(BlueprintType)
+struct FArkCardInstance
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadOnly)
+	ECardInstanceKind Kind;
+	
+	UPROPERTY(BlueprintReadOnly)
+	FArkCard Presented;
+};
 
 UENUM(BlueprintType)
 enum ECardSuit : uint8
@@ -64,6 +95,10 @@ struct FCardComponentMapping : public FTableRowBase
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UCardComponentBase> Comp;
 };
+
+
+UENUM(BlueprintType)
+enum class EAreaWriteResult : uint8 { Accepted , Full , Mismatch };
 
 USTRUCT(BlueprintType)
 struct FCardAreaSlot

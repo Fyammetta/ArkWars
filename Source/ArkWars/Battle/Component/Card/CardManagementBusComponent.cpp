@@ -45,22 +45,22 @@ void UCardManagementBusComponent::GetLifetimeReplicatedProps(TArray<class FLifet
 	DOREPLIFETIME(UCardManagementBusComponent, JudgementArea);
 }
 
-int32 UCardManagementBusComponent::GetIndexOfCard(const FGameplayTagContainer& Card) const
+int32 UCardManagementBusComponent::GetIndexOfCard(const FArkCard& Card) const
 {
 	return HandCards.Find(Card);
 }
 
-void UCardManagementBusComponent::SelectCard(const FGameplayTagContainer& Card)
+void UCardManagementBusComponent::SelectCard(const FArkCard& Card)
 {
 	SelectedCards.Add(Card);
 }
 
-void UCardManagementBusComponent::ClearCardSelection(const FGameplayTagContainer& Card)
+void UCardManagementBusComponent::ClearCardSelection(const FArkCard& Card)
 {
 	SelectedCards.Remove(Card);
 }
 
-TArray<FGameplayTagContainer> UCardManagementBusComponent::ConsumeCards()
+TArray<FArkCard> UCardManagementBusComponent::ConsumeCards()
 {
 	auto Arr = MoveTemp(SelectedCards);
 	OnCardSelectionChanged.Broadcast(Arr, true);
@@ -89,12 +89,12 @@ void UCardManagementBusComponent::ClearTargetsSelection(APlayerState* Target)
 	SelectedPlayers.Remove(Target);
 }
 
-bool UCardManagementBusComponent::CanPutInJudgement(const FGameplayTagContainer& Card) const
+bool UCardManagementBusComponent::CanPutInJudgement(const FArkCard& Card) const
 {
 	return false;
 }
 
-void UCardManagementBusComponent::EquipCard(const FGameplayTagContainer& Card)
+void UCardManagementBusComponent::EquipCard(const FArkCard& Card)
 {
 }
 
@@ -103,14 +103,6 @@ void UCardManagementBusComponent::HandleJudgement()
 }
 
 void UCardManagementBusComponent::SetCardOrder(const TArray<int32>& NewOrder)
-{
-}
-
-void UCardManagementBusComponent::MoveIn(ICardContainerInterface* From, TArray<FGameplayTagContainer>&& Cards, const FString& Msg)
-{
-}
-
-void UCardManagementBusComponent::MoveOut(ICardContainerInterface* To, const TArray<FGameplayTagContainer>& Cards, const FString& Msg)
 {
 }
 
@@ -133,7 +125,7 @@ TArray<FGameplayTag> UCardManagementBusComponent::GetAreaKeys() const
 	return Arr;
 }
 
-TArray<FGameplayTagContainer> UCardManagementBusComponent::GetCardsByKey(const FGameplayTag& Key) const
+TArray<FArkCard> UCardManagementBusComponent::GetCardsByKey(const FGameplayTag& Key) const
 {
 	using namespace CardTags;
 	
@@ -143,11 +135,11 @@ TArray<FGameplayTagContainer> UCardManagementBusComponent::GetCardsByKey(const F
 	}
 	if (Key == Equipment)
 	{
-		TArray<FGameplayTagContainer> OutCards;
+		TArray<FArkCard> OutCards;
 
-		for (const FCardAreaSlot& Slot : EquipmentArea)
+		for (const FArkCard& Slot : EquipmentArea)
 		{
-			OutCards.Append(Slot.GetAll());
+			OutCards.Add(Slot);
 		}
 		return OutCards;
 
@@ -155,11 +147,11 @@ TArray<FGameplayTagContainer> UCardManagementBusComponent::GetCardsByKey(const F
 
 	if (Key == Judgement)
 	{
-		TArray<FGameplayTagContainer> OutCards;
+		TArray<FArkCard> OutCards;
 
-		for (const FCardAreaSlot& Slot : JudgementArea)
+		for (const FArkCard& Slot : JudgementArea)
 		{
-			OutCards.Append(Slot.GetAll());
+			OutCards.Add(Slot);
 		}
 		return OutCards;
 	}
@@ -185,6 +177,26 @@ TArray<FGameplayTagContainer> UCardManagementBusComponent::GetCardsByKey(const F
 	return {};
 }
 
+const FArkCard* UCardManagementBusComponent::GetCardById(int32 CardId) const
+{
+	return nullptr;
+}
+
+TArray<int32> UCardManagementBusComponent::Select(const FGameplayTag& Area, const FString& Msg) const
+{
+	return {};
+}
+
+TArray<FArkCard> UCardManagementBusComponent::Consume(const FGameplayTag& Area, const TArray<int32>& CardIds) const
+{
+	return {};
+}
+
+EAreaWriteResult UCardManagementBusComponent::Add(const FGameplayTag& AreaKey, TArray<FArkCard>&& Cards,
+	const FString& Msg)
+{
+	return EAreaWriteResult::Accepted;
+}
 
 
 #undef MATCH_SUIT_CASE

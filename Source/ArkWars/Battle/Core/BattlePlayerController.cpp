@@ -11,7 +11,7 @@ void ABattlePlayerController::TryEndPhase()
 {
 }
 
-void ABattlePlayerController::TrySelectCard(const FGameplayTagContainer& Card) const
+void ABattlePlayerController::TrySelectCard(const FArkCard& Card) const
 {
 	auto PS = GetPlayerState<AActor>();
 	if (!PS)
@@ -26,7 +26,7 @@ void ABattlePlayerController::TrySelectCard(const FGameplayTagContainer& Card) c
 	Comp->SelectCard(Card);
 }
 
-void ABattlePlayerController::TryUseCard(const FGameplayTagContainer& Card)
+void ABattlePlayerController::TryUseCard(const FArkCard& Card)
 {
 	auto PS = GetPlayerState<APlayerState>();
 	auto Comp = PS->FindComponentByClass<UCardManagementBusComponent>();
@@ -34,7 +34,7 @@ void ABattlePlayerController::TryUseCard(const FGameplayTagContainer& Card)
 	Server_UseCard(PS, Comp->ConsumeTargets(), Card);
 }
 
-void ABattlePlayerController::TryMoveCard(const TArray<FGameplayTagContainer>& Cards, ICardContainerInterface* From, ICardContainerInterface* To, const FString& Msg)
+void ABattlePlayerController::TryMoveCard(const TArray<FArkCard>& Cards, ICardContainerInterface* From, ICardContainerInterface* To, const FString& Msg)
 {
 	auto FromObj = From->_getUObject();
 	auto ToObj = From->_getUObject();
@@ -42,12 +42,12 @@ void ABattlePlayerController::TryMoveCard(const TArray<FGameplayTagContainer>& C
 	Server_MoveCard(Cards ,FromObj, ToObj, Msg);
 }
 
-void ABattlePlayerController::TryResponse(APlayerState* Target, const FGameplayTagContainer& Source, const FGameplayTagContainer& Card)
+void ABattlePlayerController::TryResponse(APlayerState* Target, const FArkCard& Source, const FArkCard& Card)
 {
 	Server_Response(Target, Source, Card);
 }
 
-void ABattlePlayerController::TryShowCard(const TArray<FGameplayTagContainer>& Cards)
+void ABattlePlayerController::TryShowCard(const TArray<FArkCard>& Cards)
 {
 	Server_ShowCard(Cards);
 }
@@ -78,7 +78,7 @@ void ABattlePlayerController::TryActivateSkill(const FGameplayTag& SkillTag)
 {
 }
 
-void ABattlePlayerController::Server_UseCard_Implementation(APlayerState* Source, const TArray<APlayerState*>& Targets, const FGameplayTagContainer& Card)
+void ABattlePlayerController::Server_UseCard_Implementation(APlayerState* Source, const TArray<APlayerState*>& Targets, const FArkCard& Card)
 {
 	if (auto Comp = UCardComponentBase::Get(this, Card))
 	{
@@ -86,17 +86,16 @@ void ABattlePlayerController::Server_UseCard_Implementation(APlayerState* Source
 	}
 }
 
-void ABattlePlayerController::Server_MoveCard_Implementation(const TArray<FGameplayTagContainer>& Cards,
+void ABattlePlayerController::Server_MoveCard_Implementation(const TArray<FArkCard>& Cards,
 	const TScriptInterface<ICardContainerInterface>& From, const TScriptInterface<ICardContainerInterface>& To, const FString& Msg)
 {
-	From->MoveOut(To.GetInterface(),Cards,Msg);
 }
 
-void ABattlePlayerController::Server_Response_Implementation(APlayerState* Target, const FGameplayTagContainer& Source, const FGameplayTagContainer& Card)
+void ABattlePlayerController::Server_Response_Implementation(APlayerState* Target, const FArkCard& Source, const FArkCard& Card)
 {
 }
 
-void ABattlePlayerController::Server_ShowCard_Implementation(const TArray<FGameplayTagContainer>& Cards)
+void ABattlePlayerController::Server_ShowCard_Implementation(const TArray<FArkCard>& Cards)
 {
 }
 
@@ -108,6 +107,6 @@ void ABattlePlayerController::Server_ResponseComparison_Implementation(APlayerSt
 {
 }
 
-void ABattlePlayerController::Server_ConfirmComparison_Implementation(const FGameplayTagContainer& Card, bool bIsInitiator)
+void ABattlePlayerController::Server_ConfirmComparison_Implementation(const FArkCard& Card, bool bIsInitiator)
 {
 }

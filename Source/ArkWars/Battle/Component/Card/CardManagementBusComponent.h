@@ -17,17 +17,17 @@ class ARKWARS_API UCardManagementBusComponent : public UActorComponent, public I
 {
 	GENERATED_BODY()
 	///选中仅在客户端中暂存
-	TArray<FGameplayTagContainer> SelectedCards;
+	TArray<FArkCard> SelectedCards;
 	TArray<TWeakObjectPtr<APlayerState>> SelectedPlayers;
 	
 	UPROPERTY(Replicated)
-	TArray<FCardAreaSlot> EquipmentArea;
+	TArray<FArkCard> EquipmentArea;
 	
 	UPROPERTY(Replicated)
-	TArray<FCardAreaSlot> JudgementArea;
+	TArray<FArkCard> JudgementArea;
 	
 	UPROPERTY(Replicated)
-	TArray<FGameplayTagContainer> HandCards;
+	TArray<FArkCard> HandCards;
 public:
 	UCardManagementBusComponent();
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
@@ -36,12 +36,12 @@ public:
 	FCardSelectionChangeDelegate OnCardSelectionChanged;
 	
 	
-	int32 GetIndexOfCard(const FGameplayTagContainer& Card) const;
+	int32 GetIndexOfCard(const FArkCard& Card) const;
 	
-	void SelectCard(const FGameplayTagContainer& Card);
-	void ClearCardSelection(const FGameplayTagContainer& Card);
-	const TArray<FGameplayTagContainer>& GetSelectedCards() { return SelectedCards; };
-	TArray<FGameplayTagContainer> ConsumeCards();
+	void SelectCard(const FArkCard& Card);
+	void ClearCardSelection(const FArkCard& Card);
+	const TArray<FArkCard>& GetSelectedCards() { return SelectedCards; };
+	TArray<FArkCard> ConsumeCards();
 	
 	void SelectTarget(APlayerState* Target);
 	void ClearTargetsSelection(APlayerState* Target);
@@ -49,20 +49,19 @@ public:
 	TArray<APlayerState*> ConsumeTargets();
 
 	
-	bool CanPutInJudgement(const FGameplayTagContainer& Card) const;
+	bool CanPutInJudgement(const FArkCard& Card) const;
 	
-	void EquipCard(const FGameplayTagContainer& Card);
+	void EquipCard(const FArkCard& Card);
 	void HandleJudgement();
-	
-	virtual void MoveIn(ICardContainerInterface* From, TArray<FGameplayTagContainer>&& Cards, const FString& Msg) override;
-	
-	virtual void MoveOut(ICardContainerInterface* To, const TArray<FGameplayTagContainer>& Cards, const FString& Msg) override;
-	
 
-	
+
+	virtual TArray<FArkCard> GetCardsByKey(const FGameplayTag& Area) const override;
+	virtual const FArkCard* GetCardById(int32 CardId) const override;
+	virtual TArray<int32> Select(const FGameplayTag& Area, const FString& Msg) const override;
+	[[nodiscard]] virtual TArray<FArkCard> Consume(const FGameplayTag& Area, const TArray<int32>& CardIds) const override;
+	virtual EAreaWriteResult Add(const FGameplayTag& AreaKey, TArray<FArkCard>&& Cards, const FString& Msg) override;
 	virtual TArray<FGameplayTag> GetAreaKeys() const override;
 	
-	virtual TArray<FGameplayTagContainer> GetCardsByKey(const FGameplayTag& Key) const override;
 	
 	void SetCardOrder(const TArray<int32>& NewOrder);
 	

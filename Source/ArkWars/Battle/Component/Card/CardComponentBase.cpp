@@ -69,7 +69,7 @@ UCardComponentBase* UCardComponentBase::Get(AActor* Owner, const FGameplayTag& C
 	return nullptr;
 }
 
-UCardComponentBase* UCardComponentBase::Get(AActor* Owner, const FGameplayTagContainer& Card)
+UCardComponentBase* UCardComponentBase::Get(AActor* Owner, const FArkCard& Card)
 {
 	FGameplayTag Key;
 	//TODO: 解码Key的方式
@@ -77,7 +77,7 @@ UCardComponentBase* UCardComponentBase::Get(AActor* Owner, const FGameplayTagCon
 	return Get(Owner, Key);
 }
 
-void UCardComponentBase::Use(APlayerState* Source, const TArray<APlayerState*>& Targets, const FGameplayTagContainer& Card)
+void UCardComponentBase::Use(APlayerState* Source, const TArray<APlayerState*>& Targets, const FArkCard& Card)
 {
 }
 

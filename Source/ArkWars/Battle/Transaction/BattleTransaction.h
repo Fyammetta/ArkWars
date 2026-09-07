@@ -27,7 +27,7 @@ public:
 	bool IsTransactionCanceled() const { return bIsCancelled; };
 
 	AActor* GetInstigator();
-	AActor* GetTarget();
+	TArray<AActor*> GetTarget();
 	
 	void QueryTimings();
 	void NotifyTimings();
@@ -37,7 +37,7 @@ protected:
 	
 	///	子类通过对应接口进行操作，规定使用Actor作为基类保证网络复制功能存在
 	TWeakObjectPtr<AActor> Instigator;
-	TWeakObjectPtr<AActor> Target;
+	TArray<TWeakObjectPtr<AActor>> Target;
 	bool bIsCancelled = false;
 };
 

@@ -35,14 +35,14 @@ public:
 	 *	@param Owner				附加到的Actor, 需要是世界唯一的实例
 	 *	@param Card					特定的卡牌，用于获取对应的Tag，优先以视为/转化的目标为键
 	 */
-	static UCardComponentBase* Get(AActor* Owner, const FGameplayTagContainer& Card);
+	static UCardComponentBase* Get(AActor* Owner, const FArkCard& Card);
 	/**
 	 *	需要使用卡牌时调用, 可以指定多个目标, 逻辑由子类提供
 	 *	@param Source				卡牌的使用者
 	 *	@param Targets				卡牌的目标(若需要)
 	 *	@param Card					被选中使用的卡牌，通常需要来源于该组件(Cards/ConvertedCards)或为“视为”等，否则无法使用
 	 */
-	virtual void Use(APlayerState* Source, const TArray<APlayerState*>& Targets, const FGameplayTagContainer& Card);
+	virtual void Use(APlayerState* Source, const TArray<APlayerState*>& Targets, const FArkCard& Card);
 	
 	/**
 	 *	将卡牌移出手牌时调用，可以移动至牌堆、本人的其他区域、他人的区域等

@@ -7,6 +7,7 @@
 #include "GameFramework/PlayerController.h"
 #include "BattlePlayerController.generated.h"
 
+struct FArkCard;
 class ICardContainerInterface;
 /**
  * 
@@ -35,12 +36,12 @@ public:
 	 *	选中卡牌,单次选中一张，可累加
 	 *	@param Card		单次选中的卡牌
 	 */
-	void TrySelectCard(const FGameplayTagContainer& Card) const;
+	void TrySelectCard(const FArkCard& Card) const;
 	/**
 	 *	主动使用卡牌
 	 *	@param Card		待使用的卡牌
 	 */
-	void TryUseCard(const FGameplayTagContainer& Card);
+	void TryUseCard(const FArkCard& Card);
 	/**
 	 *	移动卡牌，可定义来源与去向，装备置入、弃牌等操作均由此触发
 	 *	@param Card		待移动的卡牌
@@ -48,19 +49,19 @@ public:
 	 *	@param To		卡牌去向
 	 *	@param Msg		移动额外信息
 	 */
-	void TryMoveCard(const TArray<FGameplayTagContainer>& Cards, ICardContainerInterface* From, ICardContainerInterface* To, const FString& Msg);
+	void TryMoveCard(const TArray<FArkCard>& Cards, ICardContainerInterface* From, ICardContainerInterface* To, const FString& Msg);
 	/**
 	 *	响应他人使用卡牌的效果
 	 *	@param Target	响应的来源玩家
 	 *	@param Source	需要响应的卡牌
 	 *	@param Card		用于响应的卡牌
 	 */
-	void TryResponse(APlayerState* Target, const FGameplayTagContainer& Source, const FGameplayTagContainer& Card);
+	void TryResponse(APlayerState* Target, const FArkCard& Source, const FArkCard& Card);
 	/**
 	 *	展示多张卡牌
 	 *	@param Cards	待展示的卡牌
 	 */
-	void TryShowCard(const TArray<FGameplayTagContainer>& Cards);
+	void TryShowCard(const TArray<FArkCard>& Cards);
 	/**
 	 *	对多名目标发起拼点
 	 *	@param Targets	拼点的目标
@@ -90,16 +91,16 @@ private:
 	///===================== RPC =====================
 
 	UFUNCTION(Server, Reliable)
-	void Server_UseCard(APlayerState* Source, const TArray<APlayerState*>& Targets, const FGameplayTagContainer& Card);
+	void Server_UseCard(APlayerState* Source, const TArray<APlayerState*>& Targets, const FArkCard& Card);
 	
 	UFUNCTION(Server, Reliable)
-	void Server_MoveCard(const TArray<FGameplayTagContainer>& Cards, const TScriptInterface<ICardContainerInterface>& From, const TScriptInterface<ICardContainerInterface>& To, const FString& Msg);
+	void Server_MoveCard(const TArray<FArkCard>& Cards, const TScriptInterface<ICardContainerInterface>& From, const TScriptInterface<ICardContainerInterface>& To, const FString& Msg);
 	
 	UFUNCTION(Server, Reliable)
-	void Server_Response(APlayerState* Target, const FGameplayTagContainer& Source, const FGameplayTagContainer& Card);
+	void Server_Response(APlayerState* Target, const FArkCard& Source, const FArkCard& Card);
 	
 	UFUNCTION(Server, Reliable)
-	void Server_ShowCard(const TArray<FGameplayTagContainer>& Cards);
+	void Server_ShowCard(const TArray<FArkCard>& Cards);
 	
 	UFUNCTION(Server, Reliable)
 	void Server_StartComparison(const TArray<APlayerState*>& Targets);
@@ -108,5 +109,5 @@ private:
 	void Server_ResponseComparison(APlayerState* Target);
 	
 	UFUNCTION(Server, Reliable)
-	void Server_ConfirmComparison(const FGameplayTagContainer& Card, bool bIsInitiator);
+	void Server_ConfirmComparison(const FArkCard& Card, bool bIsInitiator);
 };
