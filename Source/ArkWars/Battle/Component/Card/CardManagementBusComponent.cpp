@@ -187,7 +187,7 @@ TArray<int32> UCardManagementBusComponent::Select(const FGameplayTag& Area, cons
 	return {};
 }
 
-TArray<FArkCard> UCardManagementBusComponent::Consume(const FGameplayTag& Area, const TArray<int32>& CardIds) const
+TArray<FArkCard> UCardManagementBusComponent::Consume(const FGameplayTag& Area, const TArray<int32>& CardIds)
 {
 	return {};
 }

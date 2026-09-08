@@ -73,8 +73,9 @@ public:
 	virtual const FArkCard* GetCardById(int32 CardId) const override;
 	virtual TArray<int32> Select(const FGameplayTag& Area, const FString& Msg) const override;
 	[[nodiscard]] virtual TArray<FArkCard>
-	Consume(const FGameplayTag& Area, const TArray<int32>& CardIds) const override;
+	Consume(const FGameplayTag& Area, const TArray<int32>& CardIds) override;
 	virtual EAreaWriteResult Add(const FGameplayTag& AreaKey, TArray<FArkCard>&& Cards, const FString& Msg) override;
+	virtual AActor* GetContainerActor() override { return this;};
 
 protected:
 	virtual TArray<FArkCard> GetCardsByKey(const FGameplayTag& Key) const override;

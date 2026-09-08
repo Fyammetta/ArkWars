@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "EventTypes.h"
 #include "UObject/Object.h"
 #include "BattleTransaction.generated.h"
 
@@ -16,39 +17,36 @@ class ARKWARS_API UBattleTransaction : public UObject
 {
 	GENERATED_BODY()
 public:
-	enum class EState : uint8 { Created, Querying, Executed, Finished };
-
-	void Begin();
+	enum class EState : uint8 {Spawned, Started, Querying, Executed, Finished };
+	
+	void Start();
+	/* ======= ↓↓↓↓ ======= */
 	virtual void Execute() PURE_VIRTUAL(UBattleTransaction::Execute);
-	void Cancel();
-	void Finish();
-	
-	EState GetState() const { return State; };
-	bool IsTransactionCanceled() const { return bIsCancelled; };
-
-	AActor* GetInstigator();
-	TArray<AActor*> GetTarget();
-	
-	void QueryTimings();
-	void NotifyTimings();
-	void OnWindowClosed();
 protected:
-	EState State = EState::Created;
-	
-	///	子类通过对应接口进行操作，规定使用Actor作为基类保证网络复制功能存在
-	TWeakObjectPtr<AActor> Instigator;
-	TArray<TWeakObjectPtr<AActor>> Target;
-	bool bIsCancelled = false;
-};
-
-namespace GameMessage { struct FMoveMessage; }
-UCLASS()
-class ARKWARS_API UCardMoveTransaction : public UBattleTransaction
-{
-	GENERATED_BODY()
-	TUniquePtr<GameMessage::FMoveMessage> Message;                // 解析后的意图（From/To/Num/Predicate/Order）
-	TArray<FGameplayTagContainer> Cards;			
+	/* ======= ↓↓↓↓ ======= */
+	void QueryTimings();
+	/* ======= ↓↓↓↓ ======= */
+	void OnWindowClosed();
+	/* ======= ↓↓↓↓ ======= */
+	void Finish(bool bSuccess);
 	
 public:
-	virtual void Execute() override {};
+	EState GetState() const { return State; };
+	
+	///	子类通过对应接口进行操作，规定使用Actor作为基类保证网络复制功能存在
+	TWeakObjectPtr<AActor> Instigator = nullptr;
+	TArray<TWeakObjectPtr<AActor>> Targets = {};
+
+	void AppendModification(const FTransactionModRequest& Req);
+	
+	virtual void FoldMods() PURE_VIRTUAL(UBattleTransaction::FoldMods)
+	
+protected:
+	virtual bool Validate() const PURE_VIRTUAL(UBattleTransaction::Validate, return false;);
+	
+	virtual void BroadcastFinish(bool bSuccess) PURE_VIRTUAL(UBattleTransaction::BroadcastFinish);
+	
+	EState State = EState::Spawned;
+	
+	TArray<FTransactionModRequest> ModeRequests = {};
 };

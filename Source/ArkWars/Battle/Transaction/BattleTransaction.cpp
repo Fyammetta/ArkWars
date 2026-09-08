@@ -2,45 +2,49 @@
 
 
 #include "BattleTransaction.h"
+#include "ArkWars/Battle/System/BattleGameFlowSubsystem.h"
+#include "ArkWars/Battle/Toolkits/BattleFunctionLibrary.h"
 
-void UBattleTransaction::Begin()
+void UBattleTransaction::Start()
 {
+	//仅在服务器中入队
+	if (GetWorld()->GetNetMode() != NM_ListenServer && GetWorld()->GetNetMode() != NM_DedicatedServer) return;
+
+	if (!Validate() || State != EState::Spawned) return;
 	
+	State = EState::Started;
+	auto System = UBattleFunctionLibrary::GetBattleManager(this);
+	
+	if (!System) return;
+	
+	System->EnqueueTransaction(this);
 }
 
-void UBattleTransaction::Cancel()
+
+void UBattleTransaction::AppendModification(const FTransactionModRequest& Req)
 {
+	if (State != EState::Querying) return;
+	
+	ModeRequests.Add(Req);
 }
 
-void UBattleTransaction::Finish()
+void UBattleTransaction::Finish(bool bSuccess)
 {
+	State = EState::Finished;
+	auto System = UBattleFunctionLibrary::GetBattleManager(this);
+	
+	if (!System) return;
+	
+	BroadcastFinish(bSuccess);
+	System->OnTransactionFinished(this);
 }
 
 void UBattleTransaction::QueryTimings()
 {
-}
-
-void UBattleTransaction::NotifyTimings()
-{
+	State = EState::Querying;
 }
 
 void UBattleTransaction::OnWindowClosed()
 {
-}
-
-AActor* UBattleTransaction::GetInstigator()
-{
-	return Instigator.IsValid() ? Instigator.Get() : nullptr;
-}
-
-TArray<AActor*> UBattleTransaction::GetTarget()
-{
-	TArray<AActor*> Result;
-	for (TWeakObjectPtr<AActor> Actor : Target)
-	{
-		if (Actor.IsValid())
-			Result.Add(Actor.Get());
-	}
 	
-	return Result;
 }

@@ -91,7 +91,7 @@ TArray<int32> ACardTableManager::Select(const FGameplayTag& Area, const FString&
 	return {};
 }
 
-TArray<FArkCard> ACardTableManager::Consume(const FGameplayTag& Area, const TArray<int32>& CardIds) const
+TArray<FArkCard> ACardTableManager::Consume(const FGameplayTag& Area, const TArray<int32>& CardIds)
 {
 	return {};
 }

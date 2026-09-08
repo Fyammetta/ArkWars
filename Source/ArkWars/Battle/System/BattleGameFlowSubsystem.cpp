@@ -2,7 +2,7 @@
 
 
 #include "BattleGameFlowSubsystem.h"
-
+#include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "ArkWars/ArkWars.h"
 #include "ArkWars/Battle/Component/Card/CardManagementBusComponent.h"
@@ -10,6 +10,7 @@
 #include "ArkWars/Battle/Component/GameMode/GameModeComponentBase.h"
 #include "ArkWars/Battle/Toolkits/ArkWarFlowTypes.h"
 #include "ArkWars/Battle/Toolkits/GameMessage.h"
+#include "ArkWars/Battle/Transaction/SubTransaction/CardMoveTransaction.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 
@@ -40,24 +41,6 @@ void UBattleGameFlowSubsystem::Deinitialize()
 	Super::Deinitialize();
 	
 	CardManager = nullptr;
-}
-
-void UBattleGameFlowSubsystem::InitPlayerOrder(int32 StartIndex)
-{
-	
-	if (!IsRunningOnServer())
-	{
-		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][InitPlayerOrder] Initialization should only be run on server"))
-		return;
-	};
-	auto Comp = GetPhaseManager();
-	if (!Comp)
-	{
-		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][InitPlayerOrder] Fail to init player order, phase manager was not found"))
-
-		return;
-	}
-	Comp->InitPlayers(StartIndex);
 }
 
 int32 UBattleGameFlowSubsystem::GetPlayerIndex(APlayerState* Player) const
@@ -256,16 +239,27 @@ void UBattleGameFlowSubsystem::StartGame()
 	};
 	
 	//分配身份
-	ModeComp->AllocateIdentity();
+	int32 Start = ModeComp->AllocateIdentity();
+	PhaseComp->InitPlayers(Start);
 	UE_LOG(LogGamePlay, Log, TEXT("[GameFlow][StartGame] Identity allocated completely"))
+	
+	//通知选角
+	ModeComp->SentSelectOperatorNotify();
+	
+	//根据角色选择结果初始化牌堆
+	ModeComp->InitCardDeck();
+	
 	//分发起始手牌
-	for (auto i = PhaseComp->GetPlayerIndex(); i < PhaseComp->GetPlayerIndex() + PhaseComp->GetPlayerCount() ; ++i)
+	for (auto i = 0; i < PhaseComp->GetPlayerCount() ; ++i)
 	{
 		auto Player = PhaseComp->GetPlayerByIndex(i);
-		auto Hand = Player->GetComponentByClass<UCardManagementBusComponent>();
 		using MSG = GameMessage::FMoveMessage;
 		auto Num = ModeComp->GetStartCardNum(Player->Implements<UAbilitySystemInterface>() ? Cast<IAbilitySystemInterface>(Player)->GetAbilitySystemComponent() : nullptr);
-		//Manager->MoveOut(Hand, {}, FString::Printf(TEXT("%s=%d %s=%s %s=%s"),MSG::Num, Num, MSG::From, MSG::Pile, MSG::To, MSG::Hand));
+	
+		auto Transaction = UCardMoveTransaction::Create(FString::Printf(TEXT("%s=%d %s=%s %s=%s"), MSG::Num,Num, MSG::From,MSG::Pile,MSG::To,MSG::Hand));
+		Transaction->Instigator = Manager->GetContainerActor();
+		Transaction->Targets.Add(Player);
+		Transaction->Start();
 		
 		UE_LOG(LogGamePlay, Log, TEXT("[GameFlow][StartGame] Initial hand card allocated to %s"), *Player->GetPlayerNameCustom())
 	}
@@ -278,11 +272,15 @@ void UBattleGameFlowSubsystem::StartGame()
 
 void UBattleGameFlowSubsystem::EnqueueTransaction(UBattleTransaction* Tx)
 {
+	UAbilitySystemComponent* Asc = nullptr;
 	if (!IsRunningOnServer())
 	{
 		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][EnqueueTransaction] Transaction should only be added on server"))
 		return;
 	};
+	if (ActiveTransaction.IsValid()) return;
+	
+	DriveTransaction();
 }
 
 void UBattleGameFlowSubsystem::DriveTransaction()
@@ -292,6 +290,9 @@ void UBattleGameFlowSubsystem::DriveTransaction()
 		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][DriveTransaction] Process should only run on server"))
 		return;
 	};
+	
+	ActiveTransaction = PendingTransactions[0];
+	ActiveTransaction->Execute();
 }
 
 void UBattleGameFlowSubsystem::OnTransactionFinished(UBattleTransaction* Tx)

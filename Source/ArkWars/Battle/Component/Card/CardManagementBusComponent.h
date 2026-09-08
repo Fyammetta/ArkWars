@@ -58,9 +58,10 @@ public:
 	virtual TArray<FArkCard> GetCardsByKey(const FGameplayTag& Area) const override;
 	virtual const FArkCard* GetCardById(int32 CardId) const override;
 	virtual TArray<int32> Select(const FGameplayTag& Area, const FString& Msg) const override;
-	[[nodiscard]] virtual TArray<FArkCard> Consume(const FGameplayTag& Area, const TArray<int32>& CardIds) const override;
+	[[nodiscard]] virtual TArray<FArkCard> Consume(const FGameplayTag& Area, const TArray<int32>& CardIds) override;
 	virtual EAreaWriteResult Add(const FGameplayTag& AreaKey, TArray<FArkCard>&& Cards, const FString& Msg) override;
 	virtual TArray<FGameplayTag> GetAreaKeys() const override;
+	virtual AActor* GetContainerActor() override {return GetOwner();};
 	
 	
 	void SetCardOrder(const TArray<int32>& NewOrder);

@@ -41,6 +41,7 @@ public:
 	///	============================  委托  ============================
 	FActivePlayerChangeDelegate OnActivePlayerChanged;
 	FGamePhaseChangeDelegate OnGamePhaseChanged;
+	FGameRoundChangeDelegate OnGameRoundChanged;
 	
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	void SetNextPlayerActive(int32 Index = INDEX_NONE);

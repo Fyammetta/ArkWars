@@ -29,7 +29,7 @@ class ARKWARS_API UBattleGameFlowSubsystem : public UWorldSubsystem
 	UPROPERTY()
 	TArray<UBattleTransaction*> PendingTransactions;
 	
-	int32 ActiveTransactionIndex;
+	TWeakObjectPtr<UBattleTransaction> ActiveTransaction;
 	
 	/** 仅服务器存在，FIFO */
 	TArray<GameMessage::FPhaseMessage> PhaseMsgQueue;
@@ -51,12 +51,6 @@ public:
 	UGamePhaseManagerComponent* GetPhaseManager() const;
 
 	///	阶段管理方法
-	
-	/**
-	 *	转发到阶段管理器，在开始游戏时设置起始玩家
-	 *	@param StartIndex		起始玩家的下标
-	 */
-	void InitPlayerOrder(int32 StartIndex);
 
 	/**
 	 *	获取特定玩家的下标

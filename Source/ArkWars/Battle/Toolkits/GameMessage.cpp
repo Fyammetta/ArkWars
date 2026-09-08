@@ -156,7 +156,7 @@ GameMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 		}
 	}
 
-	_bDiscard = Msg.Find(IsDiscard) && FCString::Atoi(*Temp);
+	_bDiscard = Find(IsDiscard) && FCString::Atoi(*Temp);
 
 	if (Find(Order))
 	{

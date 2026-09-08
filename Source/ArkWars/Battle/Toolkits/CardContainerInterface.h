@@ -34,9 +34,11 @@ public:
 	
 	///Write
 	
-	[[nodiscard]] virtual TArray<FArkCard> Consume(const FGameplayTag& Area, const TArray<int32>& CardIds) const = 0;
+	[[nodiscard]] virtual TArray<FArkCard> Consume(const FGameplayTag& Area, const TArray<int32>& CardIds) = 0;
 	
 	virtual EAreaWriteResult Add(const FGameplayTag& AreaKey, TArray<FArkCard>&& Cards, const FString& Msg) = 0;
 	
 	virtual TArray<FGameplayTag> GetAreaKeys() const = 0;
+	
+	virtual AActor* GetContainerActor() = 0;
 };
