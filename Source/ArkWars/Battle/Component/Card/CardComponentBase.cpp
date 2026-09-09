@@ -81,11 +81,11 @@ void UCardComponentBase::Use(APlayerState* Source, const TArray<APlayerState*>& 
 {
 }
 
-void UCardComponentBase::Move(const TArray<FGameplayTagContainer>& Cards, ICardContainerInterface* From,
+void UCardComponentBase::Move(const TArray<FArkCard>& Cards, ICardContainerInterface* From,
 	ICardContainerInterface* To)
 {
 }
 
-void UCardComponentBase::Response(APlayerState* Source, APlayerState* Target, const FGameplayTagContainer& Card)
+void UCardComponentBase::Response(APlayerState* Source, APlayerState* Target, const FArkCard& Card)
 {
 }

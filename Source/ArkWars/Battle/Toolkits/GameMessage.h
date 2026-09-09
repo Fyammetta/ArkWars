@@ -9,6 +9,8 @@
 #endif
 
 
+struct FArkCard;
+
 namespace GameMessage
 {
 	using Key = const TCHAR*;
@@ -29,7 +31,7 @@ namespace GameMessage
 		enum class EOrder
 		{
 			Top,
-			Botton,
+			Bottom,
 			Random
 		};
 #pragma region Keys
@@ -59,7 +61,7 @@ namespace GameMessage
 		KEY Order		= TEXT("ORDER");		//获取顺序，若不存在则默认为Top
 		KEY Top			= TEXT("-OT");			//从容器栈顶开始
 		KEY Random		= TEXT("-OR");			//每次随机从容器中获得一张
-		KEY Botton		= TEXT("-OB");			//从容器栈底开始
+		KEY Bottom		= TEXT("-OB");			//从容器栈底开始
 		KEY Meta		= TEXT("META");			//后续的部分不会被解码，直到出现' '或'\0'，可用于各自约定的Message定义
 #pragma endregion
 	private:
@@ -73,13 +75,16 @@ namespace GameMessage
 		EOrder _Order;
 		FGameplayTag _From;
 		FGameplayTag _To;
-		TFunction<bool(const FGameplayTagContainer&)> Predicate;
+		
+		TFunction<bool(const FArkCard&)> Predicate;
 
 		FMoveMessage(const FString& Msg);
 		
-		bool operator()(const FGameplayTagContainer& Card) const;
+		bool operator()(const FArkCard& Card) const;
 		
-		TArray<FGameplayTagContainer> operator()(const TArray<FGameplayTagContainer>& Cards) const;
+		TArray<FArkCard> operator()(const TArray<FArkCard>& Cards) const;
+		
+		bool IsValid() const;
 	};
 	
 	///

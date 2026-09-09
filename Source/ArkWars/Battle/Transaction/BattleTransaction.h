@@ -7,7 +7,6 @@
 #include "UObject/Object.h"
 #include "BattleTransaction.generated.h"
 
-struct FGameplayTagContainer;
 class APlayerState;
 /**
  * 

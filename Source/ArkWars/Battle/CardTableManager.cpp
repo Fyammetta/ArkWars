@@ -2,8 +2,6 @@
 
 
 #include "CardTableManager.h"
-
-#include "HeadMountedDisplayTypes.h"
 #include "Net/UnrealNetwork.h"
 #include "Toolkits/ArkWarTags.h"
 #include "Toolkits/GameMessage.h"
@@ -22,9 +20,9 @@ void ACardTableManager::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
 	
 	DOREPLIFETIME(ACardTableManager, CachedArea)
 	DOREPLIFETIME(ACardTableManager, PlayedArea)
-	DOREPLIFETIME(ACardTableManager, CardSource)
 	DOREPLIFETIME(ACardTableManager, PileArea)
 	DOREPLIFETIME(ACardTableManager, DiscardArea)
+	DOREPLIFETIME(ACardTableManager, JudgementArea)
 }
 
 ACardTableManager* ACardTableManager::Get(UWorld* World)
@@ -81,23 +79,181 @@ void ACardTableManager::OnRep_DiscardAreaChanged()
 {
 }
 
+void ACardTableManager::OnRep_JudgementAreaChanged()
+{
+}
+
 const FArkCard* ACardTableManager::GetCardById(int32 CardId) const
 {
+	for (const FArkCard& Card : CachedArea)
+	{
+		if (Card.Identity == CardId) return &Card;
+	}
+	
+	for (const FArkCard& Card : JudgementArea)
+	{
+		if (Card.Identity == CardId) return &Card;
+	}
+	
+	for (const FArkCard& Card : PlayedArea)
+	{
+		if (Card.Identity == CardId) return &Card;
+	}
+	
+	for (const FArkCard& Card : PileArea)
+	{
+		if (Card.Identity == CardId) return &Card;
+	}
+	for (const FArkCard& Card : DiscardArea)
+	{
+		if (Card.Identity == CardId) return &Card;
+	}
+	
 	return nullptr;
 }
 
-TArray<int32> ACardTableManager::Select(const FGameplayTag& Area, const FString& Msg) const
+TArray<int32> ACardTableManager::Select(const FGameplayTag& Area, const FMessageType& Msg) const
 {
-	return {};
+	using namespace CardTags;
+	using EOrder = GameMessage::FMoveMessage::EOrder;
+	TArray<FArkCard> Temp {};
+	if (Area == Pile)
+		Temp = PileArea;
+	else if (Area == Discard)
+		Temp = DiscardArea;
+	else if (Area == Judgement)
+		Temp = JudgementArea;
+	else if (Area == Used)
+		Temp = PlayedArea;
+	else if (Area == Cache)
+		Temp = CachedArea;
+	else
+		return {};
+
+	if (Temp.IsEmpty()) return {};
+	
+	TArray<int32> RetArr {};
+	switch (Msg._Order)
+	{
+	case EOrder::Top :
+		{
+			while (RetArr.Num() < Msg._Count)
+			{	
+				auto Card = Temp.Last();
+				if (Msg(Card))
+				{
+					RetArr.Add(Temp.Find(Card));
+				}
+				Temp.Pop();
+				if (Temp.IsEmpty()) break;
+			}
+			break;
+		}
+	case EOrder::Bottom :
+		{
+			for (int Index = 0; RetArr.Num() < Msg._Count;)
+			{
+				auto Card = Temp[Index];
+				if (Msg(Card))
+				{
+					RetArr.Add(Index);
+				}
+				Index++;
+				if (!Temp.IsValidIndex(Index)) break;
+			}
+			break;
+		}
+	case EOrder::Random :
+		{
+			while (RetArr.Num() < Msg._Count)
+			{	
+				auto Max = Temp.Num() - 1;
+				auto Rand = FMath::RandRange(0, Max);
+				Temp.Swap(Max, Rand);
+				
+				auto Card = Temp.Last();
+				if (Msg(Card))
+				{
+					RetArr.Add(Temp.Find(Card));
+				}
+				Temp.Pop();
+				if (Temp.IsEmpty()) break;
+			}
+			break;
+		}
+	}
+	
+	return RetArr;
 }
 
-TArray<FArkCard> ACardTableManager::Consume(const FGameplayTag& Area, const TArray<int32>& CardIds)
+TArray<FArkCard> ACardTableManager::Consume(const FGameplayTag& Area, const TArray<int32>& CardIndexes)
 {
-	return {};
+	using namespace CardTags;
+	TArray<FArkCard> OutCards;
+	
+	TArray<FArkCard>* CardArea = nullptr;
+	if (Area == Pile)
+		CardArea = &PileArea;
+	else if (Area == Discard)
+		CardArea = &DiscardArea;
+	else if (Area == Judgement)
+		CardArea = &JudgementArea;
+	else if (Area == Used)
+		CardArea = &PlayedArea;
+	else if (Area == Cache)
+		CardArea = &CachedArea;
+	else return {};
+	
+	for (int32 Index : CardIndexes)
+	{
+		OutCards.Add((*CardArea)[Index]);
+	}
+	
+	for (const FArkCard& OutCard : OutCards)
+	{
+		CardArea->RemoveAt(OutCards.Find(OutCard));
+	}
+	
+	return OutCards;
 }
 
-EAreaWriteResult ACardTableManager::Add(const FGameplayTag& AreaKey, TArray<FArkCard>&& Cards, const FString& Msg)
+EAreaWriteResult ACardTableManager::Add(const FGameplayTag& AreaKey, TArray<FArkCard>& Cards, const FMessageType& Msg)
 {
+	using namespace CardTags;
+	using EOrder = GameMessage::FMoveMessage::EOrder;
+	if (AreaKey == Pile)
+	{
+		switch (Msg._Order)
+		{
+			case EOrder::Bottom :
+			{
+				Cards.Append(PileArea);
+				PileArea = MoveTemp(Cards);
+				break;
+			}
+			case EOrder::Top :
+			{
+				PileArea.Append(MoveTemp(Cards));
+				break;
+			}
+			case EOrder::Random :
+			{
+				while (!Cards.IsEmpty())
+				{
+					PileArea.Insert(Cards.Pop(),FMath::RandRange(0,PileArea.Num() - 1));
+				}
+			}
+		}
+	}
+
+	else if (AreaKey == Discard)
+		DiscardArea.Append(MoveTemp(Cards));
+	else if (AreaKey == Judgement)
+		JudgementArea.Append(MoveTemp(Cards));
+	else if (AreaKey == Used)
+		PlayedArea.Append(MoveTemp(Cards));
+	else if (AreaKey == Cache)
+		CachedArea.Append(MoveTemp(Cards));
 	return EAreaWriteResult::Accepted;
 }
 

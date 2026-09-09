@@ -278,6 +278,10 @@ void UBattleGameFlowSubsystem::EnqueueTransaction(UBattleTransaction* Tx)
 		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][EnqueueTransaction] Transaction should only be added on server"))
 		return;
 	};
+	
+	if (!Tx) return;
+	
+	PendingTransactions.Add(Tx);
 	if (ActiveTransaction.IsValid()) return;
 	
 	DriveTransaction();
@@ -291,7 +295,14 @@ void UBattleGameFlowSubsystem::DriveTransaction()
 		return;
 	};
 	
+	if (PendingTransactions.IsEmpty())
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][DriveTransaction] No transaction is pending process"))
+		return;
+	};
+	
 	ActiveTransaction = PendingTransactions[0];
+	PendingTransactions.RemoveAt(0);
 	ActiveTransaction->Execute();
 }
 
@@ -302,4 +313,12 @@ void UBattleGameFlowSubsystem::OnTransactionFinished(UBattleTransaction* Tx)
 		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][OnTransactionFinished] Transaction finish notify should only be broadcast on server"))
 		return;
 	};
+	if (ActiveTransaction != Tx)
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][OnTransactionFinished] Transaction to remove is not active"))
+		return;
+	}
+	
+	ActiveTransaction = nullptr;
+	DriveTransaction();
 }

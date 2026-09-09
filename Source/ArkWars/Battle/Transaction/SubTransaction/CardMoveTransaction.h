@@ -7,16 +7,29 @@
 #include "CardMoveTransaction.generated.h"
 
 
+class ICardContainerInterface;
+struct FArkCard;
+
 namespace GameMessage { struct FMoveMessage; }
 UCLASS()
 class ARKWARS_API UCardMoveTransaction : public UBattleTransaction
 {
 	GENERATED_BODY()
 	TUniquePtr<GameMessage::FMoveMessage> Message;                // 解析后的意图（From/To/Num/Predicate/Order）
-	TArray<FGameplayTagContainer> Cards;			
+	TArray<FArkCard> Cards;			
 	
 public:
-	virtual void Execute() override {};
+	virtual void Execute() override;
+	virtual void FoldMods() override;
+
+protected:
+	virtual bool Validate() const override;
+	virtual void BroadcastFinish(bool bSuccess) override;
+
+public:
+	static UCardMoveTransaction* Create(const FString& Msg, const TArray<FArkCard>& CardsToMove = {});
 	
-	static UCardMoveTransaction* Create(const FString& Msg);
+private:
+	void HandleMovement_Selected(ICardContainerInterface* From);
+	void HandleMovement(ICardContainerInterface* From);
 };

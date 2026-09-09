@@ -1,5 +1,6 @@
 ﻿#include "GameMessage.h"
 
+#include "ArkWarCardTypes.h"
 #include "ArkWarTags.h"
 #include "ArkWars/ArkWars.h"
 
@@ -161,7 +162,7 @@ GameMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 	if (Find(Order))
 	{
 		if (Temp == Random) _Order = EOrder::Random;
-		if (Temp == Botton) _Order = EOrder::Botton;
+		if (Temp == Bottom) _Order = EOrder::Bottom;
 	}
 	if (Find(Meta))
 		_Meta = Temp;
@@ -185,7 +186,7 @@ GameMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 	struct FPredicate
 	{
 		ELogicOperation Operation;
-		TArray<TFunction<bool(const FGameplayTagContainer&)>> Complex;
+		TArray<TFunction<bool(const FArkCard&)>> Complex;
 		
 		FPredicate(ELogicOperation Op) : Operation(Op) , Complex({}) {}
 	};
@@ -203,7 +204,7 @@ GameMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 			case ']' :
 				{
 					FPredicate TempP = Stack.Pop(); 
-					Stack.Last().Complex.Add([P = MoveTemp(TempP)](const FGameplayTagContainer& Card)->bool
+					Stack.Last().Complex.Add([P = MoveTemp(TempP)](const FArkCard& Card)->bool
 					{
 						switch (P.Operation)
 						{
@@ -261,14 +262,14 @@ GameMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 					BeginIndex += Length + 1;
 					Length = 0;
 					Stack.Last().Complex.Add([CK = MoveTemp(CondKey), CV = MoveTemp(CondValue)]
-						(const FGameplayTagContainer& Card)->bool
+						(const FArkCard& Card)->bool
 					{
 						if (CK == Class)
 						{
 							FGameplayTag ClassValue = FGameplayTag::RequestGameplayTag(FName(CV));
 							UE_LOG(LogCard, Log, TEXT("[Message][Move][Class] Current Value is %s "),*ClassValue.ToString())
 
-							if (Card.HasTag(ClassValue))
+							if (Card.Card.HasTag(ClassValue))
 							{
 								return true;
 							}
@@ -278,7 +279,7 @@ GameMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 							FGameplayTag SuitValue = GetSuitMap()[CV];
 							UE_LOG(LogCard, Log, TEXT("[Message][Move][Suit] Current Value is %s "),*SuitValue.ToString())
 
-							if (Card.HasTag(SuitValue))
+							if (Card.Card.HasTag(SuitValue))
 							{
 								return true;
 							}
@@ -288,7 +289,7 @@ GameMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 							int32 MaxValue = FCString::Atoi(*CV);
 							UE_LOG(LogCard, Log, TEXT("[Message][Move][Point] Max Value is %d "),MaxValue)
 
-							for (const FGameplayTag& Tag : Card.GetGameplayTagArray())
+							for (const FGameplayTag& Tag : Card.Card.GetGameplayTagArray())
 							{
 								if (Tag.MatchesTag(CardTags::Point))
 									if (TagToPoint(Tag) < MaxValue) return true;
@@ -299,7 +300,7 @@ GameMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 							int32 MinValue = FCString::Atoi(*CV);
 							UE_LOG(LogCard, Log, TEXT("[Message][Move][Point] Min Value is %d "),MinValue)
 
-							for (const FGameplayTag& Tag : Card.GetGameplayTagArray())
+							for (const FGameplayTag& Tag : Card.Card.GetGameplayTagArray())
 							{
 								if (Tag.MatchesTag(CardTags::Point))
 									if (TagToPoint(Tag) > MinValue) return true;
@@ -315,7 +316,7 @@ GameMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 	}
 
 	
-	Predicate = [List = Stack.Pop().Complex](const FGameplayTagContainer& Card)->bool
+	Predicate = [List = Stack.Pop().Complex](const FArkCard& Card)->bool
 	{
 		for (const auto& Function : List)
 		{
@@ -328,21 +329,26 @@ GameMessage::FMoveMessage::FMoveMessage(const FString& Msg)
 		_Count, *_From.ToString(), *_To.ToString(), _bDiscard ? TEXT(", this is a discard") : TEXT(""))
 }
 
-bool GameMessage::FMoveMessage::operator()(const FGameplayTagContainer& Card) const
+bool GameMessage::FMoveMessage::operator()(const FArkCard& Card) const
 {
-	return Predicate ? Predicate(Card) : false;
+	return Predicate ? Predicate(Card) : true;
 };
 
-TArray<FGameplayTagContainer> GameMessage::FMoveMessage::operator()(const TArray<FGameplayTagContainer>& Cards) const
+TArray<FArkCard> GameMessage::FMoveMessage::operator()(const TArray<FArkCard>& Cards) const
 {
-	if (!Predicate) return {};
-	TArray<FGameplayTagContainer> RetArr {};
-	for (FGameplayTagContainer Card : Cards) 
+	if (!Predicate) return Cards;
+	TArray<FArkCard> RetArr {};
+	for (const auto& Card : Cards) 
 	{
 		if (Predicate(Card)) RetArr.Add(Card);
 	}
 		
 	return RetArr;
+}
+
+bool GameMessage::FMoveMessage::IsValid() const
+{
+	return _From.IsValid() && _To.IsValid() && _Count > 0;
 }
 
 GameMessage::FPhaseMessage::FPhaseMessage(const FString& Msg)

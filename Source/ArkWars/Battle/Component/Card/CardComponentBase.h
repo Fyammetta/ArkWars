@@ -50,7 +50,7 @@ public:
 	 *	@param From					移动的来源区域
 	 *	@param To					移动的目标区域
 	 */
-	virtual void Move(const TArray<FGameplayTagContainer>& Cards, ICardContainerInterface* From, ICardContainerInterface* To);
+	virtual void Move(const TArray<FArkCard>& Cards, ICardContainerInterface* From, ICardContainerInterface* To);
 
 	/**
 	 *	被告知需要使用/打出牌响应时调用，可以根据目标的卡牌决定当此响应是使用还是打出
@@ -58,7 +58,7 @@ public:
 	 *	@param Target				需要响应的目标
 	 *	@param Card					需要响应的目标牌
 	 */
-	virtual void Response(APlayerState* Source, APlayerState* Target, const FGameplayTagContainer& Card);
+	virtual void Response(APlayerState* Source, APlayerState* Target, const FArkCard& Card);
 
 	/**
 	 *	当卡牌选中后，需要选中目标时调用，用于判断目标是否可以被选中

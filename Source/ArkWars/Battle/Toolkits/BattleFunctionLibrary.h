@@ -37,7 +37,7 @@ public:
 	 *	@param OutCards				输出：输入中满足条件的所有卡牌(包括被转化或视为的卡牌)
 	 *	@return						输出：输入满足条件的卡牌的数量
 	 */
-	static int32 FilterCardByPredicate(const TArray<FGameplayTagContainer>& Cards, const TFunction<bool(const FGameplayTagContainer&)>& Predicate, TArray<FGameplayTagContainer>& OutCards);
+	static int32 FilterCardByPredicate(const TArray<FArkCard>& Cards, const TFunction<bool(const FArkCard&)>& Predicate, TArray<FArkCard>& OutCards);
 	
 	
 	/**
@@ -48,7 +48,7 @@ public:
 	 *	@return						输出：输入满足条件的卡牌的数量
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Card|Filter")
-	static int32 FilterCardBySuit(const TArray<FGameplayTagContainer>& Cards, const TArray<TEnumAsByte<ECardSuit>>& Suits, TArray<FGameplayTagContainer>& OutCards);
+	static int32 FilterCardBySuit(const TArray<FArkCard>& Cards, const TArray<TEnumAsByte<ECardSuit>>& Suits, TArray<FArkCard>& OutCards);
 	
 	/**
 	 *	指定点数范围的卡牌检索方式，获取输入中点数在[Min, Max]的所有卡牌
@@ -59,7 +59,7 @@ public:
 	 *	@return						输出：输入满足条件的卡牌的数量
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Card|Filter")
-	static int32 FilterCardByPoint(const TArray<FGameplayTagContainer>& Cards, int32 Min, int32 Max, TArray<FGameplayTagContainer>& OutCards);
+	static int32 FilterCardByPoint(const TArray<FArkCard>& Cards, int32 Min, int32 Max, TArray<FArkCard>& OutCards);
 	
 	/**
 	 *	指定特定标签的卡牌检索方式，获取输入中具有指定Tag的所有卡牌
@@ -69,6 +69,6 @@ public:
 	 *	@return						输出：输入满足条件的卡牌的数量
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Card|Filter")
-	static int32 FilterCardByTag(const TArray<FGameplayTagContainer>& Cards, const FGameplayTag& Tag, TArray<FGameplayTagContainer>& OutCards);
+	static int32 FilterCardByTag(const TArray<FArkCard>& Cards, const FGameplayTag& Tag, TArray<FArkCard>& OutCards);
 	
 };

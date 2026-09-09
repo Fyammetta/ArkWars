@@ -111,7 +111,7 @@ protected:
 	FGameplayTag Area;
 
 	UPROPERTY(BlueprintReadOnly)
-	TArray<FGameplayTagContainer> Cards;
+	TArray<FArkCard> Cards;
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 Capacity;
@@ -129,11 +129,11 @@ public:
 
 	bool IsEmpty() const { return Num() == 0; }
 
-	bool Add(const FGameplayTagContainer& Card) { if (IsFull()) return false; return Cards.Add(Card) != INDEX_NONE; };
+	bool Add(const FArkCard& Card) { if (IsFull()) return false; return Cards.Add(Card) != INDEX_NONE; };
 
-	bool Remove(const FGameplayTagContainer& Card) { return Cards.Remove(Card) != INDEX_NONE; };
+	bool Remove(const FArkCard& Card) { return Cards.Remove(Card) != INDEX_NONE; };
 
-	const TArray<FGameplayTagContainer>& GetAll() const { return Cards; }
+	const TArray<FArkCard>& GetAll() const { return Cards; }
 
 	const FGameplayTag& GetAreaKey() const { return Area; }
 };
@@ -142,7 +142,7 @@ struct FCardAreaSlotFactory
 {
 	static FCardAreaSlot CreateEquipmentSlot(const FGameplayTag& Key);
 
-	static FCardAreaSlot CreateJudgementSlot(const FGameplayTagContainer& Card);
+	static FCardAreaSlot CreateJudgementSlot(const FArkCard& Card);
 
 	static FCardAreaSlot CreateSpecialSlot(const FGameplayTag& Key, int32 Capacity = 1);
 };

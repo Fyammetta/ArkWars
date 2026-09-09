@@ -8,9 +8,9 @@ FCardAreaSlot FCardAreaSlotFactory::CreateEquipmentSlot(const FGameplayTag& Key)
 	return Slot;
 }
 
-FCardAreaSlot FCardAreaSlotFactory::CreateJudgementSlot(const FGameplayTagContainer& Card)
+FCardAreaSlot FCardAreaSlotFactory::CreateJudgementSlot(const FArkCard& Card)
 {
-	FCardAreaSlot Slot(Card.First());	
+	FCardAreaSlot Slot(Card.Card.First());	
 	Slot.Add(Card);
 	return Slot;
 }
