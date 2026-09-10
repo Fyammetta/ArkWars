@@ -137,3 +137,8 @@ FGameplayTag UCardManagerSubsystem::GetCardType(const FGameplayTag& Tag)
 	Check(TEXT("GetCardType"),Tag);
 	return FGameplayTag();
 }
+
+FArkCard UCardManagerSubsystem::AllocateNewCard(const FGameplayTag& Class, const FGameplayTag& Suit, const FGameplayTag& Point)
+{
+	return FArkCard{InitializedCardCount++, FGameplayTagContainer::CreateFromArray(TArray{Class, Suit, Point})};
+}

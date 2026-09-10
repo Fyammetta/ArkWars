@@ -54,10 +54,14 @@ class ARKWARS_API UCardManagerSubsystem : public UGameInstanceSubsystem
 	
 	TMap<FGameplayTag, TSharedPtr<FCardInfo>> InfoMapping;
 	
+	int32 InitializedCardCount = 0;
+	
 public:
 	bool GetCardInfoByTag(const FGameplayTag& Tag, TSharedPtr<FCardInfo>& OutInfo);
 	
 	UCardComponentBase* GetCardComponentByTag(const FGameplayTag& Tag);
 	
 	FGameplayTag GetCardType(const FGameplayTag& Tag);
+	
+	FArkCard AllocateNewCard(const FGameplayTag& Class, const FGameplayTag& Suit, const FGameplayTag& Point);
 };

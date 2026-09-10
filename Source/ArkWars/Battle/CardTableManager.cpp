@@ -34,6 +34,7 @@ ACardTableManager* ACardTableManager::Get(UWorld* World)
 	
 	if (Instance.IsValid() && Instance->GetWorld() == World) return Instance.Get();
 
+	//其次在世界中查找已存在的实例（关卡内手工摆放的管理器）
 	for (auto Actor : World->GetCurrentLevel()->Actors)
 	{
 		if (Actor && Actor->IsA(StaticClass()))
@@ -43,10 +44,12 @@ ACardTableManager* ACardTableManager::Get(UWorld* World)
 		}
 	}
 	{
+		//客户端不允许新建：必须是 Dedicated / Listen Server
 		ENetMode Mode = World->GetNetMode();
 		if (Mode != NM_DedicatedServer && Mode != NM_ListenServer) return nullptr;
 	}
 	
+	//服务器侧新建单例
 	Instance = TStrongObjectPtr(Cast<ACardTableManager>(World->SpawnActor(StaticClass())));
 	return Instance.Get();
 }
@@ -85,6 +88,7 @@ void ACardTableManager::OnRep_JudgementAreaChanged()
 
 const FArkCard* ACardTableManager::GetCardById(int32 CardId) const
 {
+	//按实体 Id 依次在 缓存 → 判定流向 → 已出 → 牌堆 → 弃牌 中反查
 	for (const FArkCard& Card : CachedArea)
 	{
 		if (Card.Identity == CardId) return &Card;
@@ -114,6 +118,7 @@ const FArkCard* ACardTableManager::GetCardById(int32 CardId) const
 
 TArray<int32> ACardTableManager::Select(const FGameplayTag& Area, const FMessageType& Msg) const
 {
+	//只读：先拷出目标区域（不改动源区），再按 _Order 扫描，命中返回源区下标
 	using namespace CardTags;
 	using EOrder = GameMessage::FMoveMessage::EOrder;
 	TArray<FArkCard> Temp {};
@@ -165,6 +170,7 @@ TArray<int32> ACardTableManager::Select(const FGameplayTag& Area, const FMessage
 		}
 	case EOrder::Random :
 		{
+			auto Source = Temp;
 			while (RetArr.Num() < Msg._Count)
 			{	
 				auto Max = Temp.Num() - 1;
@@ -174,7 +180,7 @@ TArray<int32> ACardTableManager::Select(const FGameplayTag& Area, const FMessage
 				auto Card = Temp.Last();
 				if (Msg(Card))
 				{
-					RetArr.Add(Temp.Find(Card));
+					RetArr.Add(Source.Find(Card));
 				}
 				Temp.Pop();
 				if (Temp.IsEmpty()) break;
@@ -188,9 +194,13 @@ TArray<int32> ACardTableManager::Select(const FGameplayTag& Area, const FMessage
 
 TArray<FArkCard> ACardTableManager::Consume(const FGameplayTag& Area, const TArray<int32>& CardIndexes)
 {
+	//仅服务器权威可写
+	if (!HasAuthority()) return {};
+	
 	using namespace CardTags;
 	TArray<FArkCard> OutCards;
 	
+	//定位源区（桌面五区）
 	TArray<FArkCard>* CardArea = nullptr;
 	if (Area == Pile)
 		CardArea = &PileArea;
@@ -209,20 +219,29 @@ TArray<FArkCard> ACardTableManager::Consume(const FGameplayTag& Area, const TArr
 		OutCards.Add((*CardArea)[Index]);
 	}
 	
-	for (const FArkCard& OutCard : OutCards)
+	TArray<FArkCard> Recover {};
+
+	for (int32 i = 0; i < CardArea->Num(); i++)
 	{
-		CardArea->RemoveAt(OutCards.Find(OutCard));
+		if (CardIndexes.Find(i) != INDEX_NONE) continue;
+		Recover.Add((*CardArea)[i]);
 	}
+	
+	*CardArea = MoveTemp(Recover);
 	
 	return OutCards;
 }
 
 EAreaWriteResult ACardTableManager::Add(const FGameplayTag& AreaKey, TArray<FArkCard>& Cards, const FMessageType& Msg)
 {
+	//仅服务器权威可写
+	if (!HasAuthority()) return EAreaWriteResult::Mismatch;
+	
 	using namespace CardTags;
 	using EOrder = GameMessage::FMoveMessage::EOrder;
 	if (AreaKey == Pile)
 	{
+		//牌堆：数组尾为牌堆顶 → Top = 追加尾部；Bottom = 旧牌堆接在新牌之后（新牌在底）；Random = 逐张随机插入
 		switch (Msg._Order)
 		{
 			case EOrder::Bottom :
@@ -246,6 +265,7 @@ EAreaWriteResult ACardTableManager::Add(const FGameplayTag& AreaKey, TArray<FArk
 		}
 	}
 
+	//以下四区均无顺序语义，一律追加到数组尾
 	else if (AreaKey == Discard)
 		DiscardArea.Append(MoveTemp(Cards));
 	else if (AreaKey == Judgement)
@@ -254,24 +274,29 @@ EAreaWriteResult ACardTableManager::Add(const FGameplayTag& AreaKey, TArray<FArk
 		PlayedArea.Append(MoveTemp(Cards));
 	else if (AreaKey == Cache)
 		CachedArea.Append(MoveTemp(Cards));
+	else return EAreaWriteResult::Mismatch;		//未识别区域键：兜底（09-10 补）
+	
 	return EAreaWriteResult::Accepted;
 }
 
 
 TArray<FArkCard> ACardTableManager::GetCardsByKey(const FGameplayTag& Key) const
 {
+	//只读：桌面五区（Judgement 于 09-10 补入），其余区域返回空数组
 	using namespace CardTags;
 
 	if (Key == Pile)	return PileArea;
 	if (Key == Discard) return DiscardArea;
 	if (Key == Cache)	return CachedArea;
 	if (Key == Used)	return PlayedArea;
+	if (Key == Judgement)	return JudgementArea;
 	
 	return {};
 }
 
 TArray<FGameplayTag> ACardTableManager::GetAreaKeys() const
 {
+	//与 GetCardsByKey 的清单保持一致
 	using namespace CardTags;
-	return {Pile, Discard, Cache, Used};
+	return {Pile, Discard, Cache, Used, Judgement};
 }

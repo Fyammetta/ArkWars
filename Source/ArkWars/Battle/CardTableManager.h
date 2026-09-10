@@ -57,7 +57,8 @@ public:
 	/**
 	 *	获取当前世界的管理器单例
 	 *	@param World			需要获取管理器的世界
-	 *	@return					管理器实例，若不存在则新建一个
+	 *	@return					管理器实例；世界中已存在则复用；客户端（非 Listen / Dedicated Server）
+	 *	                        未找到时返回 nullptr，服务器侧才会新建
 	 */
 	static ACardTableManager* Get(UWorld* World);
 
@@ -67,31 +68,36 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	/**
-	 *	复制通知：CachedArea（缓存/临时区）变化（当前为空实现，表现更新待接）
+	 *	复制通知：CachedArea（缓存/临时区）变化
+	 *	TODO: 当前为空实现，表现更新待接
 	 */
 	UFUNCTION()
 	virtual void OnRep_CachedAreaChanged();
 	
 	/**
-	 *	复制通知：PlayedArea（已出牌缓冲）变化（当前为空实现，表现更新待接）
+	 *	复制通知：PlayedArea（已出牌缓冲）变化
+	 *	TODO: 当前为空实现，表现更新待接
 	 */
 	UFUNCTION()
 	virtual void OnRep_PlayedAreaChanged();
 	
 	/**
-	 *	复制通知：PileArea（抽牌堆）变化（当前为空实现，表现更新待接）
+	 *	复制通知：PileArea（抽牌堆）变化
+	 *	TODO: 当前为空实现，表现更新待接
 	 */
 	UFUNCTION()
 	virtual void OnRep_PileAreaChanged();
 	
 	/**
-	 *	复制通知：DiscardArea（弃牌堆）变化（当前为空实现，表现更新待接）
+	 *	复制通知：DiscardArea（弃牌堆）变化
+	 *	TODO: 当前为空实现，表现更新待接
 	 */
 	UFUNCTION()
 	virtual void OnRep_DiscardAreaChanged();
 	
 	/**
-	 *	复制通知：JudgementArea（桌面判定流向区）变化（当前为空实现，表现更新待接）
+	 *	复制通知：JudgementArea（桌面判定流向区）变化
+	 *	TODO: 当前为空实现，表现更新待接
 	 */
 	UFUNCTION()
 	virtual void OnRep_JudgementAreaChanged();
@@ -116,7 +122,6 @@ public:
 
 	/**
 	 *	把指定下标对应的卡从源区取出并整壳返回（源侧"移出"半跳）
-	 *	注意：当前实现删除下标取自取出副本、且无门控/越界防御，缺陷见 P2 §2-E，待修
 	 *	@param Area	        区域标签（Pile / Discard / Judgement / Used / Cache）
 	 *	@param CardIndexes	源区下标数组（一般来自 Select 返回值）
 	 *	@return			取出的卡数组；区域不识别时为空数组
@@ -130,7 +135,7 @@ public:
 	 *	@param AreaKey	区域标签（Pile / Discard / Judgement / Used / Cache）
 	 *	@param Cards	待入的卡（成功落位后为空）
 	 *	@param Msg	        移动意图消息（Pile 使用 _Order；其余区域忽略）
-	 *	@return			当前恒为 Accepted（无容量约束与未知键兜底，见 P2 §2-E）
+	 *	@return			落位成功返回 Accepted；未识别区域键返回 Mismatch
 	 */
 	virtual EAreaWriteResult Add(const FGameplayTag& AreaKey, TArray<FArkCard>& Cards, const FMessageType& Msg) override;
 
@@ -143,7 +148,7 @@ public:
 protected:
 	/**
 	 *	返回指定桌面区域的卡牌副本
-	 *	支持 Pile / Discard / Cache / Used；JudgementArea 不在此清单内（观察项，见 P2 §2-E）
+	 *	支持 Pile / Discard / Judgement / Used(PlayedArea) / Cache 五区（09-10 已补 Judgement）
 	 *	@param Key	区域标签
 	 *	@return		对应区域的卡数组副本；区域不识别时为空数组
 	 */
@@ -151,7 +156,7 @@ protected:
 
 	/**
 	 *	返回桌面已注册的区域标签集合
-	 *	@return	区域标签集合（Pile / Discard / Cache / Used，不含 JudgementArea，见 P2 §2-E）
+	 *	@return	区域标签集合（Pile / Discard / Cache / Used / Judgement，与 GetCardsByKey 一致）
 	 */
 	virtual TArray<FGameplayTag> GetAreaKeys() const override;
 };

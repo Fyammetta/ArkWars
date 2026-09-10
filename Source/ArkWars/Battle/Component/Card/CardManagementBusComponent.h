@@ -21,6 +21,7 @@ class ARKWARS_API UCardManagementBusComponent : public UActorComponent, public I
 	///本地暂存的选中目标（弱引用，取走前须有效性过滤）
 	TArray<TWeakObjectPtr<APlayerState>> SelectedPlayers;
 	
+	///装备区：按槽位下标存放（空槽以 Identity == INDEX_NONE 的占位牌填充）
 	UPROPERTY(Replicated)
 	TArray<FArkCard> EquipmentArea;
 	
@@ -28,10 +29,12 @@ class ARKWARS_API UCardManagementBusComponent : public UActorComponent, public I
 	UPROPERTY(Replicated)
 	TArray<FArkCard> JudgementArea;
 	
+	///手牌区：纯顺序数组，尾元素为牌顶
 	UPROPERTY(Replicated)
 	TArray<FArkCard> HandCards;
 public:
 
+	///构造：开启组件复制（复制字段见 GetLifetimeReplicatedProps）
 	UCardManagementBusComponent();
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
@@ -101,34 +104,37 @@ public:
 	/**
 	 *	询问指定判定牌能否放入判定区（同种唯一/槽位占用的前置判定）
 	 *	@param Card	要放入判定区的卡
-	 *	@return			当前恒为 true（槽位定位逻辑未实现，注释占位，见 P2 §2-E）
+	 *	@return			可放返回 true；牌类不符 / 槽下标解析失败 / 槽已占用返回 false
 	 */
 	bool CanPutInJudgement(const FArkCard& Card) const;
 
 	/**
 	 *	询问指定牌能否装备到装备区（槽位占用/废除标记的前置判定）
 	 *	@param Card	要装备的卡
-	 *	@return			当前恒为 true（槽位定位逻辑未实现，注释占位，见 P2 §2-E）
+	 *	@return			可装备返回 true；牌类不符 / 槽下标解析失败 / 槽已占用返回 false
 	 */
 	bool CanEquipCard(const FArkCard& Card) const;
 
 	/**
 	 *	按卡的 Tag 定位装备槽并将牌落入装备区
-	 *	注意：当前为空实现（不写任何区），Equipment 落位逻辑待补，见 P2 §2-E
+	 *	槽位不足时以空占位牌扩容到目标下标；槽空则置入，槽已占用则以新牌顶替并
+	 *	对被顶下的旧牌发起一次移动交易（Equipment → Used）
+	 *	仅服务器权威执行（无权限直接返回）
 	 *	@param Card	要装备的卡
 	 */
-	void Equip(const FArkCard& Card) const;
+	void Equip(const FArkCard& Card);
 
 	/**
 	 *	按卡的 Tag 定位判定槽并将判定牌置入判定区
-	 *	注意：当前为空实现（不写任何区），Judgement 落位逻辑待补，见 P2 §2-E
+	 *	槽位不足时以空占位牌扩容到目标下标；槽空则置入，槽已占用则静默忽略
+	 *	仅服务器权威执行（无权限直接返回）
 	 *	@param Card	要放入判定区的卡
 	 */
-	void PutIntoJudgement(const FArkCard& Card) const;
+	void PutIntoJudgement(const FArkCard& Card);
 
 	/**
 	 *	结算本玩家判定区中的判定牌
-	 *	注意：当前为空实现，判定结算待阶段体接入（卷 08 §8）
+	 *	TODO: 当前为空实现，判定结算待阶段体接入（卷 08 §8）
 	 */
 	void HandleJudgement();
 
@@ -161,7 +167,6 @@ public:
 	/**
 	 *	把指定下标对应的卡从源区取出并整壳返回（源侧"移出"半跳）
 	 *	仅服务器权威执行（无权限返回空数组）；返回值必须被接手（喂给目标 Add 或进入结算去向）
-	 *	注意：当前删除实现的下标取自取出副本，非升序连续输入会错删/越界，见 P2 §2-E
 	 *	@param Area	        区域标签（仅 Hand / Equipment / Judgement）
 	 *	@param CardIndexes	源区下标数组（一般来自 Select 返回值）
 	 *	@return			        取出的卡数组；无权限或区域不识别时为空数组
@@ -171,8 +176,8 @@ public:
 	/**
 	 *	把待入的卡落入目标区域（目标侧"移入"半跳）
 	 *	仅服务器权威执行（无权限返回 Mismatch）；成功路径调用后 Cards 被清空
-	 *	注意：Equipment / Judgement 分支当前经空实现的 Equip / PutIntoJudgement 并不真落区，
-	 *	见 P2 §2-E
+	 *	Equipment / Judgement 分支：数量不为 1 → Mismatch；槽位校验不过 → Full；
+	 *	通过才真落区（Equip / PutIntoJudgement）并清空入参 Cards
 	 *	@param AreaKey	区域标签（Hand / Equipment / Judgement）
 	 *	@param Cards	待入的卡（成功落位后为空）
 	 *	@param Msg	        移动意图消息（当前 Hand 直接入尾；Equipment / Judgement 走槽位逻辑）
@@ -181,8 +186,8 @@ public:
 	virtual EAreaWriteResult Add(const FGameplayTag& AreaKey, TArray<FArkCard>& Cards, const FMessageType& Msg) override;
 
 	/**
-	 *	返回本组件名下的区域标签集合，并追加 Owner 上其他容器组件各自名下的区域
-	 *	@return	区域标签集合（含 Hand / Equipment / Judgement 及委托容器的区域）
+	 *	返回本组件名下的区域标签集合
+	 *	@return	区域标签集合（Hand / Equipment / Judgement）
 	 */
 	virtual TArray<FGameplayTag> GetAreaKeys() const override;
 
@@ -191,13 +196,5 @@ public:
 	 *	@return	持有本组件的 Owner（APlayerState）
 	 */
 	virtual AActor* GetContainerActor() override {return GetOwner();};
-	
-
-	/**
-	 *	按给定顺序重排手牌
-	 *	已废弃（09-09 决策）：同区整理交 UI，服务器不承接同区改序；当前为空实现待删
-	 *	@param NewOrder	目标顺序（当前未使用）
-	 */
-	void SetCardOrder(const TArray<int32>& NewOrder);
 
 };

@@ -13,10 +13,10 @@ ABattlePlayerState::ABattlePlayerState()
 TArray<FArkCard> ABattlePlayerState::GetCardsByKey(const FGameplayTag& Area) const
 {
 	ICardContainerInterface* Container = nullptr;
-	for (UActorComponent* Component : GetComponentsByInterface(UCardManagementBusComponent::StaticClass()))
+	for (UActorComponent* Component : GetComponentsByInterface(UCardContainerInterface::StaticClass()))
 	{
 		Container = Cast<ICardContainerInterface>(Component);
-		if (Container->GetAreaKeys().Contains(Area))
+		if (Container && Container->GetAreaKeys().Contains(Area))
 			return Container->GetCardsByKey(Area);
 	}
 	
@@ -26,10 +26,10 @@ TArray<FArkCard> ABattlePlayerState::GetCardsByKey(const FGameplayTag& Area) con
 const FArkCard* ABattlePlayerState::GetCardById(int32 CardId) const
 {
 	ICardContainerInterface* Container = nullptr;
-	for (UActorComponent* Component : GetComponentsByInterface(UCardManagementBusComponent::StaticClass()))
+	for (UActorComponent* Component : GetComponentsByInterface(UCardContainerInterface::StaticClass()))
 	{
 		Container = Cast<ICardContainerInterface>(Component);
-		if (Container->GetCardById(CardId))
+		if (Container && Container->GetCardById(CardId))
 			return Container->GetCardById(CardId);
 	}
 	
@@ -39,10 +39,10 @@ const FArkCard* ABattlePlayerState::GetCardById(int32 CardId) const
 TArray<int32> ABattlePlayerState::Select(const FGameplayTag& Area, const FMessageType& Msg) const
 {
 	ICardContainerInterface* Container = nullptr;
-	for (UActorComponent* Component : GetComponentsByInterface(UCardManagementBusComponent::StaticClass()))
+	for (UActorComponent* Component : GetComponentsByInterface(UCardContainerInterface::StaticClass()))
 	{
 		Container = Cast<ICardContainerInterface>(Component);
-		if (Container->GetAreaKeys().Contains(Area))
+		if (Container && Container->GetAreaKeys().Contains(Area))
 			return Container->Select(Area, Msg);
 	}
 	
@@ -51,10 +51,10 @@ TArray<int32> ABattlePlayerState::Select(const FGameplayTag& Area, const FMessag
 TArray<FArkCard> ABattlePlayerState::Consume(const FGameplayTag& Area, const TArray<int32>& CardIds)
 {
 	ICardContainerInterface* Container = nullptr;
-	for (UActorComponent* Component : GetComponentsByInterface(UCardManagementBusComponent::StaticClass()))
+	for (UActorComponent* Component : GetComponentsByInterface(UCardContainerInterface::StaticClass()))
 	{
 		Container = Cast<ICardContainerInterface>(Component);
-		if (Container->GetAreaKeys().Contains(Area))
+		if (Container && Container->GetAreaKeys().Contains(Area))
 			return Container->Consume(Area, CardIds);
 	}
 	
@@ -64,23 +64,26 @@ TArray<FArkCard> ABattlePlayerState::Consume(const FGameplayTag& Area, const TAr
 EAreaWriteResult ABattlePlayerState::Add(const FGameplayTag& AreaKey, TArray<FArkCard>& Cards, const FMessageType& Msg)
 {
 	ICardContainerInterface* Container = nullptr;
-	for (UActorComponent* Component : GetComponentsByInterface(UCardManagementBusComponent::StaticClass()))
+	for (UActorComponent* Component : GetComponentsByInterface(UCardContainerInterface::StaticClass()))
 	{
 		Container = Cast<ICardContainerInterface>(Component);
-		if (Container->GetAreaKeys().Contains(AreaKey))
+		if (Container && Container->GetAreaKeys().Contains(AreaKey))
 			return Container->Add(AreaKey, Cards, Msg);
 	}
 	
-	return {};
+	//未命中转发容器时显式失败，避免 `return {}` 取枚举首值 Accepted 被读作写入成功
+	return EAreaWriteResult::Mismatch;
 }
 
 TArray<FGameplayTag> ABattlePlayerState::GetAreaKeys() const
 {
 	TArray<FGameplayTag> AreaKeys{};
 	ICardContainerInterface* Container = nullptr;
-	for (UActorComponent* Component : GetComponentsByInterface(UCardManagementBusComponent::StaticClass()))
+	for (UActorComponent* Component : GetComponentsByInterface(UCardContainerInterface::StaticClass()))
 	{
-		AreaKeys.Append(Cast<ICardContainerInterface>(Component)->GetAreaKeys());
+		Container = Cast<ICardContainerInterface>(Component);
+		if (Container)
+			AreaKeys.Append(Container->GetAreaKeys());
 	}
 	
 	return AreaKeys;
@@ -91,7 +94,7 @@ void ABattlePlayerState::BeginPlay()
 	Super::BeginPlay();
 	if (HasAuthority())
 	{
-		auto Comp = NewObject<UCardManagementBusComponent>(this,UCardManagementBusComponent::StaticClass(), TEXT("CardManagementBus"));
+		auto Comp = NewObject<UCardManagementBusComponent>(this,UCardContainerInterface::StaticClass(), TEXT("CardManagementBus"));
 		Comp->RegisterComponent();
 	}
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ArkWarTags.h"
 #include "Engine/DataTable.h"
 #include "Engine/Texture2D.h"
 #include "GameplayTagContainer.h"
@@ -19,13 +20,22 @@ struct FArkCard
 {
 	GENERATED_BODY()
 	
+	///卡牌实体 Id（全局唯一；跨区定位 / 去重 / 相等比较均以它为准）
 	UPROPERTY(BlueprintReadOnly)
 	int32 Identity;
 	
+	///规则层标签集合（类别 / 花色 / 点数……）；定槽时常用 First() 作键
 	UPROPERTY(BlueprintReadOnly)
 	FGameplayTagContainer Card;
 	
+	///相等语义：只看实体 Id（不含标签），故跨区查找 / 去重都以 Id 为键
 	bool operator==(const FArkCard& Other) const { return Identity == Other.Identity; }
+	
+	FGameplayTag GetClass() const { return Card.First(); }
+	
+	FGameplayTag GetSuit() const { return Card.GetByIndex(1); }
+	
+	FGameplayTag GetPoint() const { return Card.GetByIndex(2); }
 };
 
 UENUM(BlueprintType)
@@ -98,21 +108,28 @@ struct FCardComponentMapping : public FTableRowBase
 
 
 UENUM(BlueprintType)
+///区域写入结果：Accepted = 已写入；Full = 目标已满 / 槽位占用；Mismatch = 区域不识别或入参形状不符
+//TODO: Accepted 是枚举首值，写接口的失败分支切勿 `return {}`（会默认命中 Accepted），须显式给 Full / Mismatch
 enum class EAreaWriteResult : uint8 { Accepted , Full , Mismatch };
 
 USTRUCT(BlueprintType)
+///区域槽基元：区域键 + 容量 + 卡牌数组
+//TODO: 全库暂无使用方，落位实现定稿后再定去留（P2 §1）
 struct FCardAreaSlot
 {
 	GENERATED_BODY()
 
 	friend struct FCardAreaSlotFactory;
 protected:
+	///槽所属的区域键
 	UPROPERTY(BlueprintReadOnly)
 	FGameplayTag Area;
 
+	///槽内牌（数组顺序即槽内顺序）
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FArkCard> Cards;
 
+	///槽容量（默认 1，可经工厂改写；IsFull 判定以此为准）
 	UPROPERTY(BlueprintReadOnly)
 	int32 Capacity;
 
@@ -138,11 +155,26 @@ public:
 	const FGameplayTag& GetAreaKey() const { return Area; }
 };
 
+///槽工厂：按区域键 / 牌面构造容量与起始牌确定的槽
 struct FCardAreaSlotFactory
 {
+	///装备槽：容量沿用默认 1，起始为空
 	static FCardAreaSlot CreateEquipmentSlot(const FGameplayTag& Key);
 
+	///判定槽：槽键取牌面首个标签，并把该判定牌直接放入槽中
 	static FCardAreaSlot CreateJudgementSlot(const FArkCard& Card);
 
+	///通用槽：容量可指定（默认 1）
 	static FCardAreaSlot CreateSpecialSlot(const FGameplayTag& Key, int32 Capacity = 1);
 };
+
+///槽位映射：把"牌面标签键"翻译成区域内的槽下标
+//TODO: 骨架，映射表待填（P2 §2-E 缺陷⑦）
+namespace CardAreaSlot
+{
+	//TODO: 判定槽位映射恒返回 INDEX_NONE（REGISTER_CARD_SLOT 宏已备但未使用）
+	ARKWARS_API int32 GetJudgementSlot(const FGameplayTag& Key);
+	
+	//TODO: 装备槽位映射同上，未填表，恒返回 INDEX_NONE
+	ARKWARS_API int32 GetEquipmentSlot(const FGameplayTag& Key);
+}
