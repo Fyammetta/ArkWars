@@ -20,6 +20,8 @@ class ARKWARS_API ABattlePlayerState : public APlayerState, public IAbilitySyste
 	UPROPERTY()
 	TObjectPtr<UAbilitySystemComponent> Asc;
 	
+	UPROPERTY(Replicated)
+	FName Operator;
 
 public:
 	ABattlePlayerState();
@@ -36,13 +38,16 @@ public:
 
 	virtual void NotifySelectOperator(const TArray<FName>& OperatorList) override;
 	virtual void OnOperatorSelected(const FName& Operator) override;
+	virtual const FName& GetOperator() const override { return Operator; };
+	
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 	virtual void BeginPlay() override;
 	
 private:
 	UFUNCTION(Server, Reliable)
-	void Server_OnOperatorSelected(const FName& Operator);
+	void Server_OnOperatorSelected(const FName& SelectedOperator);
 	
 	UFUNCTION(Client, Reliable)
 	void Client_NotifySelectOperator(const TArray<FName>& OperatorList);

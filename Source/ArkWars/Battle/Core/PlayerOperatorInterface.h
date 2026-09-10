@@ -25,4 +25,6 @@ public:
 	virtual void NotifySelectOperator(const TArray<FName>& OperatorList) = 0;
 	
 	virtual void OnOperatorSelected(const FName& Operator) = 0;
+	
+	virtual const FName& GetOperator() const = 0;
 };

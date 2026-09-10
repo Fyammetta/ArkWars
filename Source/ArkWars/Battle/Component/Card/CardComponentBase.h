@@ -35,22 +35,14 @@ public:
 	 *	@param Owner				附加到的Actor, 需要是世界唯一的实例
 	 *	@param Card					特定的卡牌，用于获取对应的Tag，优先以视为/转化的目标为键
 	 */
-	static UCardComponentBase* Get(AActor* Owner, const FArkCard& Card);
+	static UCardComponentBase* Get(AActor* Owner, const FArkCardInstance& Card);
 	/**
 	 *	需要使用卡牌时调用, 可以指定多个目标, 逻辑由子类提供
 	 *	@param Source				卡牌的使用者
 	 *	@param Targets				卡牌的目标(若需要)
 	 *	@param Card					被选中使用的卡牌，通常需要来源于该组件(Cards/ConvertedCards)或为“视为”等，否则无法使用
 	 */
-	virtual void Use(APlayerState* Source, const TArray<APlayerState*>& Targets, const FArkCard& Card);
-	
-	/**
-	 *	将卡牌移出手牌时调用，可以移动至牌堆、本人的其他区域、他人的区域等
-	 *	@param Cards				待移动的手牌
-	 *	@param From					移动的来源区域
-	 *	@param To					移动的目标区域
-	 */
-	virtual void Move(const TArray<FArkCard>& Cards, ICardContainerInterface* From, ICardContainerInterface* To);
+	virtual void Use(APlayerState* Source, const TArray<APlayerState*>& Targets, const FArkCardInstance& Card);
 
 	/**
 	 *	被告知需要使用/打出牌响应时调用，可以根据目标的卡牌决定当此响应是使用还是打出
@@ -58,7 +50,7 @@ public:
 	 *	@param Target				需要响应的目标
 	 *	@param Card					需要响应的目标牌
 	 */
-	virtual void Response(APlayerState* Source, APlayerState* Target, const FArkCard& Card);
+	virtual void Response(APlayerState* Source, APlayerState* Target, const FArkCardInstance& Card);
 
 	/**
 	 *	当卡牌选中后，需要选中目标时调用，用于判断目标是否可以被选中
@@ -70,5 +62,4 @@ public:
 	
 protected:
 	virtual int32 DataConverter(const FString& Data) { return 0; };
-	
 };

@@ -52,6 +52,11 @@ struct FArkCardInstance
 	
 	UPROPERTY(BlueprintReadOnly)
 	FArkCard Presented;
+	FArkCardInstance() : Kind(ECardInstanceKind::Direct), Presented(FArkCard()) {}
+	
+	FArkCardInstance(const FArkCard& Card) : Kind(ECardInstanceKind::Direct), Presented(Card) {}
+	
+	FArkCardInstance(const FArkCard& Card, ECardInstanceKind InKind) : Kind(InKind), Presented(Card) {}
 };
 
 UENUM(BlueprintType)

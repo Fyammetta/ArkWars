@@ -69,23 +69,15 @@ UCardComponentBase* UCardComponentBase::Get(AActor* Owner, const FGameplayTag& C
 	return nullptr;
 }
 
-UCardComponentBase* UCardComponentBase::Get(AActor* Owner, const FArkCard& Card)
+UCardComponentBase* UCardComponentBase::Get(AActor* Owner, const FArkCardInstance& Card)
 {
-	FGameplayTag Key;
-	//TODO: 解码Key的方式
-	
-	return Get(Owner, Key);
+	return Get(Owner, Card.Presented.GetClass());
 }
 
-void UCardComponentBase::Use(APlayerState* Source, const TArray<APlayerState*>& Targets, const FArkCard& Card)
+void UCardComponentBase::Use(APlayerState* Source, const TArray<APlayerState*>& Targets, const FArkCardInstance& Card)
 {
 }
 
-void UCardComponentBase::Move(const TArray<FArkCard>& Cards, ICardContainerInterface* From,
-	ICardContainerInterface* To)
-{
-}
-
-void UCardComponentBase::Response(APlayerState* Source, APlayerState* Target, const FArkCard& Card)
+void UCardComponentBase::Response(APlayerState* Source, APlayerState* Target, const FArkCardInstance& Card)
 {
 }

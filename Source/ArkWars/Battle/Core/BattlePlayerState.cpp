@@ -6,6 +6,7 @@
 #include "ArkWars/Battle/Component/Card/CardManagementBusComponent.h"
 #include "ArkWars/Battle/Component/GameMode/GameModeComponentBase.h"
 #include "GameFramework/GameModeBase.h"
+#include "Net/UnrealNetwork.h"
 
 ABattlePlayerState::ABattlePlayerState()
 {
@@ -48,7 +49,8 @@ TArray<int32> ABattlePlayerState::Select(const FGameplayTag& Area, const FMessag
 			return Container->Select(Area, Msg);
 	}
 	
-	return {};}
+	return {};
+}
 
 TArray<FArkCard> ABattlePlayerState::Consume(const FGameplayTag& Area, const TArray<int32>& CardIds)
 {
@@ -73,7 +75,6 @@ EAreaWriteResult ABattlePlayerState::Add(const FGameplayTag& AreaKey, TArray<FAr
 			return Container->Add(AreaKey, Cards, Msg);
 	}
 	
-	//未命中转发容器时显式失败，避免 `return {}` 取枚举首值 Accepted 被读作写入成功
 	return EAreaWriteResult::Mismatch;
 }
 
@@ -98,9 +99,16 @@ void ABattlePlayerState::NotifySelectOperator(const TArray<FName>& OperatorList)
 	Client_NotifySelectOperator(OperatorList);
 }
 
-void ABattlePlayerState::OnOperatorSelected(const FName& Operator)
+void ABattlePlayerState::OnOperatorSelected(const FName& SelectedOperator)
 {
-	Server_OnOperatorSelected(Operator);
+	Server_OnOperatorSelected(SelectedOperator);
+}
+
+void ABattlePlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(ABattlePlayerState, Operator);
 }
 
 void ABattlePlayerState::BeginPlay()
@@ -113,13 +121,14 @@ void ABattlePlayerState::BeginPlay()
 	}
 }
 
-void ABattlePlayerState::Server_OnOperatorSelected_Implementation(const FName& Operator)
+void ABattlePlayerState::Server_OnOperatorSelected_Implementation(const FName& SelectedOperator)
 {
 	if (auto GM = GetWorld() ? GetWorld()->GetAuthGameMode() : nullptr)
 	{
 		if (auto Comp = GM->FindComponentByClass<UGameModeComponentBase>())
 		{
-			Comp->CheckOperatorSelection(this, Operator);
+			Operator = SelectedOperator;
+			Comp->CheckOperatorSelection(this, SelectedOperator);
 		}
 	}
 }
