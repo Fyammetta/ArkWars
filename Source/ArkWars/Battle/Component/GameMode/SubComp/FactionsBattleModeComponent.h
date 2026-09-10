@@ -13,11 +13,11 @@ class ARKWARS_API UFactionsBattleModeComponent : public UGameModeComponentBase
 	GENERATED_BODY()
 
 	TWeakObjectPtr<APlayerState> StartPlayer;
-	
+
 public:
 	virtual void InitCardDeck() override;
 	virtual int32 AllocateIdentity() override;
 	virtual int32 GetStartCardNum(UAbilitySystemComponent* Asc = nullptr) override;
 	virtual void SentSelectOperatorNotify() override;
-	virtual void CheckOperatorSelection(APlayerState* Player) override;
+	virtual void CheckOperatorSelection(APlayerState* Player, const FName& Operator) override;
 };

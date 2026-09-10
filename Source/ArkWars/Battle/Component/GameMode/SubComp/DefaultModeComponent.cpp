@@ -9,6 +9,7 @@
 #include "GameplayTagContainer.h"
 #include "ArkWars/ArkWars.h"
 #include "ArkWars/Battle/Component/GameFlow/GamePhaseManagerComponent.h"
+#include "ArkWars/Battle/Core/PlayerOperatorInterface.h"
 #include "ArkWars/Battle/System/BattleGameFlowSubsystem.h"
 #include "ArkWars/Battle/Toolkits/ArkWarTags.h"
 #include "ArkWars/Battle/Toolkits/BattleFunctionLibrary.h"
@@ -48,6 +49,13 @@ namespace
 		
 		return false;
 	};
+	
+	int32 GetOperatorCount(bool bIsCommander)
+	{
+		constexpr static int32 Normal = 5;
+		constexpr static int32 Commander = 3;
+		return Normal + bIsCommander ? Commander : 0;
+	}
 }
 
 int32 UDefaultModeComponent::AllocateIdentity()
@@ -125,19 +133,45 @@ void UDefaultModeComponent::SentSelectOperatorNotify()
 		UnRegisteredPlayers.Add(Player);
 		if (IsCommander(Player))
 		{
-			//TODO: 主公先选
+			if (auto Interface = Cast<IPlayerOperatorInterface>(Player))
+			{
+				TArray<FName> ToSelect {};
+				for (int i = 0; i < GetOperatorCount(true); ++i)
+				{
+					auto Max = TotalOperators.Num() - 1;
+					TotalOperators.Swap(Max, FMath::RandRange(0, Max));
+				
+					ToSelect.Add(TotalOperators.Pop());
+				}
+				Interface->NotifySelectOperator(ToSelect);
+			}
 		}
 	}
 }
 
-void UDefaultModeComponent::CheckOperatorSelection(APlayerState* Player)
+void UDefaultModeComponent::CheckOperatorSelection(APlayerState* Player, const FName& Operator)
 {
 	UnRegisteredPlayers.Remove(Player);
-
+	SelectedOperators.Add(Operator);
 	if (IsCommander(Player))
 	{
-		//TODO: 其他角色分别选
 		
+		//TODO: 其他角色分别选
+		for (auto UnRegisteredPlayer : UnRegisteredPlayers)
+		{
+			if (auto Interface = Cast<IPlayerOperatorInterface>(UnRegisteredPlayer))
+			{
+				TArray<FName> ToSelect {};
+				for (int i = 0; i < GetOperatorCount(false); ++i)
+				{
+					auto Max = TotalOperators.Num() - 1;
+					TotalOperators.Swap(Max, FMath::RandRange(0, Max));
+				
+					ToSelect.Add(TotalOperators.Pop());
+				}
+				Interface->NotifySelectOperator(ToSelect);
+			}
+		}
 		return;
 	}
 	
@@ -146,7 +180,7 @@ void UDefaultModeComponent::CheckOperatorSelection(APlayerState* Player)
 	{
 		
 	}
-	
+		
 }
 
 void UDefaultModeComponent::InitCardDeck()

@@ -7,6 +7,7 @@
 #include "ArkWars/ArkWars.h"
 #include "GameFramework/PlayerState.h"
 #include "AbilitySystemComponent.h"
+#include "ArkWars/Battle/Core/PlayerOperatorInterface.h"
 #include "ArkWars/Battle/Toolkits/ArkWarTags.h"
 #include "GameFramework/GameStateBase.h"
 
@@ -26,6 +27,9 @@ namespace
 		};
 		return RetVal;
 	}
+	
+	constexpr int32 OperatorToSelect = 5;
+	constexpr int32 StartCountAddition = 3;
 }
 
 void UFactionsBattleModeComponent::InitCardDeck()
@@ -88,16 +92,45 @@ int32 UFactionsBattleModeComponent::GetStartCardNum(UAbilitySystemComponent* Asc
 
 void UFactionsBattleModeComponent::SentSelectOperatorNotify()
 {
+	if (!StartPlayer.IsValid()) return;
+	
+	if (auto Interface = Cast<IPlayerOperatorInterface>(StartPlayer))
+	{
+		TArray<FName> ToSelect {};
+		for (int i = 0; i < OperatorToSelect + StartCountAddition; ++i)
+		{
+			auto Max = TotalOperators.Num() - 1;
+			TotalOperators.Swap(Max, FMath::RandRange(0, Max));
+				
+			ToSelect.Add(TotalOperators.Pop());
+		}
+		Interface->NotifySelectOperator(ToSelect);
+	}
 }
 
-void UFactionsBattleModeComponent::CheckOperatorSelection(APlayerState* Player)
+void UFactionsBattleModeComponent::CheckOperatorSelection(APlayerState* Player, const FName& Operator)
 {
 	UnRegisteredPlayers.Remove(Player);
-
+	SelectedOperators.Add(Operator);
 	if (StartPlayer.IsValid() && Player == StartPlayer.Get())
 	{
-		//TODO: 其他角色分别选
 		
+		//TODO: 其他角色分别选
+		for (auto UnRegisteredPlayer : UnRegisteredPlayers)
+		{
+			if (auto Interface = Cast<IPlayerOperatorInterface>(UnRegisteredPlayer))
+			{
+				TArray<FName> ToSelect {};
+				for (int i = 0; i < OperatorToSelect; ++i)
+				{
+					auto Max = TotalOperators.Num() - 1;
+					TotalOperators.Swap(Max, FMath::RandRange(0, Max));
+				
+					ToSelect.Add(TotalOperators.Pop());
+				}
+				Interface->NotifySelectOperator(ToSelect);
+			}
+		}
 		return;
 	}
 	

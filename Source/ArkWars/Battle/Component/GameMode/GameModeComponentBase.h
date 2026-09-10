@@ -15,6 +15,8 @@ class ARKWARS_API UGameModeComponentBase : public UActorComponent
 	
 protected:
 	TSet<TWeakObjectPtr<APlayerState>> UnRegisteredPlayers;
+	TArray<FName> SelectedOperators;
+	TArray<FName> TotalOperators;
 
 public:
 	static UGameModeComponentBase* GetCurrentGameMode(UObject* WorldContextObject);
@@ -40,7 +42,13 @@ public:
 	virtual void SentSelectOperatorNotify() PURE_VIRTUAL(SentSelectOperatorNotify);
 	
 	UFUNCTION(BlueprintCallable)
-	virtual void CheckOperatorSelection(APlayerState* Player) PURE_VIRTUAL(CheckOperatorSelection);
+	virtual void CheckOperatorSelection(APlayerState* Player, const FName& Operator) PURE_VIRTUAL(CheckOperatorSelection);
+	
+	UFUNCTION(BlueprintCallable)
+	virtual void ResetOperatorList() PURE_VIRTUAL(ResetOperatorList);
+	
+	UFUNCTION(BlueprintCallable)
+	virtual bool ShouldResetOperatorList() PURE_VIRTUAL(ShouldResetOperatorList, return true;);
 };
 
 

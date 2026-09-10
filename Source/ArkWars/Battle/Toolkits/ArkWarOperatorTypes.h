@@ -50,7 +50,15 @@ struct FOperatorCardInfo : public FTableRowBase
 	UPROPERTY(EditAnywhere)
 	FGameplayTagContainer Faction = {};
 
-	/// 干员的初始血量，护盾不在此处记录，计划使用SkillComps的被动效果赋予
+	/// 干员的初始血量
 	UPROPERTY(EditAnywhere)
 	int32 Health = 6;
+	
+	/// 干员的初始血量上限
+	UPROPERTY(EditAnywhere)
+	int32 MaxHealth = 6;
+	
+	/// 干员的初始护盾
+	UPROPERTY(EditAnywhere)
+	int32 Shield = 0;
 };

@@ -4,6 +4,8 @@
 #include "BattlePlayerState.h"
 #include "AbilitySystemComponent.h"
 #include "ArkWars/Battle/Component/Card/CardManagementBusComponent.h"
+#include "ArkWars/Battle/Component/GameMode/GameModeComponentBase.h"
+#include "GameFramework/GameModeBase.h"
 
 ABattlePlayerState::ABattlePlayerState()
 {
@@ -89,6 +91,18 @@ TArray<FGameplayTag> ABattlePlayerState::GetAreaKeys() const
 	return AreaKeys;
 }
 
+void ABattlePlayerState::NotifySelectOperator(const TArray<FName>& OperatorList)
+{
+	if (!HasAuthority()) return;
+	
+	Client_NotifySelectOperator(OperatorList);
+}
+
+void ABattlePlayerState::OnOperatorSelected(const FName& Operator)
+{
+	Server_OnOperatorSelected(Operator);
+}
+
 void ABattlePlayerState::BeginPlay()
 {
 	Super::BeginPlay();
@@ -97,6 +111,22 @@ void ABattlePlayerState::BeginPlay()
 		auto Comp = NewObject<UCardManagementBusComponent>(this, UCardManagementBusComponent::StaticClass(), TEXT("CardManagementBus"));
 		Comp->RegisterComponent();
 	}
+}
+
+void ABattlePlayerState::Server_OnOperatorSelected_Implementation(const FName& Operator)
+{
+	if (auto GM = GetWorld() ? GetWorld()->GetAuthGameMode() : nullptr)
+	{
+		if (auto Comp = GM->FindComponentByClass<UGameModeComponentBase>())
+		{
+			Comp->CheckOperatorSelection(this, Operator);
+		}
+	}
+}
+
+void ABattlePlayerState::Client_NotifySelectOperator_Implementation(const TArray<FName>& OperatorList)
+{
+	
 }
 
 
