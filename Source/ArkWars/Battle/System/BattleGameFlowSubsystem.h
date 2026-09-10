@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ArkWars/Battle/Toolkits/ArkWarDelegates.h"
 #include "ArkWars/Battle/Toolkits/GameMessage.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "BattleGameFlowSubsystem.generated.h"
@@ -91,6 +92,10 @@ public:
 	/**	启动游戏，依次执行：身份分配、发牌、进入游戏开始阶段并广播 */
 	void StartGame();
 	
+	///事实通知（A 面）：卡牌移动落成后的"已移动"事实，广播者 = 族钩子
+	///UCardMoveTransaction::BroadcastFinish（订阅方只读；广播旁路，回调异常不影响交易推进，卷 12 §7）
+	FCardMovedDelegate OnCardMoved;
+
 	///子阶段内交易行为管理
 	
 	/**	

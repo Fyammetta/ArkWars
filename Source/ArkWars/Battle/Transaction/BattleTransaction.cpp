@@ -21,6 +21,13 @@ void UBattleTransaction::Start()
 }
 
 
+void UBattleTransaction::Drive()
+{
+	//驱动器唯一入口：当前直通族钩子 Execute；P3 起改调 QueryTimings（开窗即返，关窗回调再走 Execute）
+	Execute();
+}
+
+
 void UBattleTransaction::AppendModification(const FTransactionModRequest& Req)
 {
 	if (State != EState::Querying) return;

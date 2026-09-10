@@ -4,6 +4,7 @@
 #include "CardMoveTransaction.h"
 
 #include "ArkWars/ArkWars.h"
+#include "ArkWars/Battle/System/BattleGameFlowSubsystem.h"
 #include "ArkWars/Battle/Toolkits/BattleFunctionLibrary.h"
 #include "ArkWars/Battle/Toolkits/CardContainerInterface.h"
 #include "ArkWars/Battle/Toolkits/GameMessage.h"
@@ -81,11 +82,15 @@ bool UCardMoveTransaction::Validate() const
 
 void UCardMoveTransaction::BroadcastFinish(bool bSuccess)
 {
-	//收尾广播：当前仅取通知标签，未真正广播
-	FGameplayTag Notify = Notify::Card::Moved;
-		
-	//TODO: 如果bSuccess = true, 广播通知
-		
+	//族事实广播位（卷 04 §2 / 卷 12 §5.1）：仅成功落子产生"已移动"事实；
+	//失败 / 被防 / 同区短路均不落子，本族无对应通知标签，不广播（MovedIn / MovedOut 细拆待用）
+	if (!bSuccess) return;
+
+	auto System = UBattleFunctionLibrary::GetBattleManager(this);
+	if (!System) return;
+
+	//唯一事实：Notify::Card::Moved + 双端 Actor + 本次实际移动的牌（订阅方只读，旁路，卷 12 §7）
+	System->OnCardMoved.Broadcast(Notify::Card::Moved, Instigator.Get(), Targets.IsEmpty() ? nullptr : Targets[0].Get(), Cards);
 }
 
 UCardMoveTransaction* UCardMoveTransaction::Create(const FString& Msg, const TArray<FArkCard>& CardsToMove)

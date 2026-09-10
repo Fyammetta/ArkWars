@@ -21,8 +21,9 @@ struct FArkCard
 	GENERATED_BODY()
 	
 	///卡牌实体 Id（全局唯一；跨区定位 / 去重 / 相等比较均以它为准）
+	///默认 INDEX_NONE = 空槽哨兵（未分配实体的占位牌，如卡槽空位；实牌经 AllocateNewCard 分配）
 	UPROPERTY(BlueprintReadOnly)
-	int32 Identity;
+	int32 Identity = INDEX_NONE;
 	
 	///规则层标签集合（类别 / 花色 / 点数……）；定槽时常用 First() 作键
 	UPROPERTY(BlueprintReadOnly)

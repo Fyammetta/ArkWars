@@ -132,12 +132,20 @@ void UDefaultModeComponent::SentSelectOperatorNotify()
 
 void UDefaultModeComponent::CheckOperatorSelection(APlayerState* Player)
 {
-	Super::CheckOperatorSelection(Player);
+	UnRegisteredPlayers.Remove(Player);
+
+	if (IsCommander(Player))
+	{
+		//TODO: 其他角色分别选
+		
+		return;
+	}
 	
-	if (!IsCommander(Player)) return ;
 	
-	//TODO: 其他角色分别选
-	
+	if (UnRegisteredPlayers.IsEmpty())
+	{
+		
+	}
 	
 }
 

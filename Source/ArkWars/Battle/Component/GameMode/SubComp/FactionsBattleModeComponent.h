@@ -12,6 +12,8 @@ class ARKWARS_API UFactionsBattleModeComponent : public UGameModeComponentBase
 {
 	GENERATED_BODY()
 
+	TWeakObjectPtr<APlayerState> StartPlayer;
+	
 public:
 	virtual void InitCardDeck() override;
 	virtual int32 AllocateIdentity() override;

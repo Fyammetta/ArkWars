@@ -303,7 +303,7 @@ void UBattleGameFlowSubsystem::DriveTransaction()
 	
 	ActiveTransaction = PendingTransactions[0];
 	PendingTransactions.RemoveAt(0);
-	ActiveTransaction->Execute();
+	ActiveTransaction->Drive();
 }
 
 void UBattleGameFlowSubsystem::OnTransactionFinished(UBattleTransaction* Tx)

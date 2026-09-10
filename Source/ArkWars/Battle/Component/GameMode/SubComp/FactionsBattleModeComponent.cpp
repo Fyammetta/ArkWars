@@ -49,7 +49,7 @@ int32 UFactionsBattleModeComponent::AllocateIdentity()
 	
 	auto Start = FMath::RandRange(0, AllPlayers.Num() - 1);
 	
-	
+	StartPlayer = AllPlayers[Start];
 	UAbilitySystemComponent* Comp = nullptr;
 	//逐个分配身份直到身份分配数组无残留元素
 	while (!Identities.IsEmpty())
@@ -92,4 +92,19 @@ void UFactionsBattleModeComponent::SentSelectOperatorNotify()
 
 void UFactionsBattleModeComponent::CheckOperatorSelection(APlayerState* Player)
 {
+	UnRegisteredPlayers.Remove(Player);
+
+	if (StartPlayer.IsValid() && Player == StartPlayer.Get())
+	{
+		//TODO: 其他角色分别选
+		
+		return;
+	}
+	
+	
+	if (UnRegisteredPlayers.IsEmpty())
+	{
+		
+	}
+		
 }
