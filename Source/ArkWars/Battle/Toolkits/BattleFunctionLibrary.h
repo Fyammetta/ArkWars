@@ -12,6 +12,7 @@ struct FGameplayTagContainer;
 class USkillManagerSubsystem;
 class UCardManagerSubsystem;
 class UBattleGameFlowSubsystem;
+class ICardContainerInterface;
 /**
  * 
  */
@@ -30,6 +31,14 @@ public:
 	static UBattleGameFlowSubsystem* GetBattleManager(const UObject* WorldContextObject);
 	
 	
+	/**
+	 *	区域解析唯一入口：把「归属 Actor」解析为其卡牌容器接口（卷 08 §4）
+	 *	@param Owner				容器归属 Actor；为空 = 无归属，直接返回 nullptr
+	 *	@param Area					目标区域标签（§4 契约保留位：两端 Actor 各自持有其区域集合，当前解析不依赖 Area）
+	 *	@return						容器接口：Owner 自身实现则取自身，否则取名下首个容器组件；均无则 nullptr
+	 */
+	static ICardContainerInterface* ResolveContainer(AActor* Owner, const FGameplayTag& Area);
+
 	/**
 	 *	通用的卡牌检索方式，获取输入中满足指定条件的所有卡牌
 	 *	@param Cards				待筛选的牌组

@@ -94,7 +94,7 @@ void ABattlePlayerState::BeginPlay()
 	Super::BeginPlay();
 	if (HasAuthority())
 	{
-		auto Comp = NewObject<UCardManagementBusComponent>(this,UCardContainerInterface::StaticClass(), TEXT("CardManagementBus"));
+		auto Comp = NewObject<UCardManagementBusComponent>(this, UCardManagementBusComponent::StaticClass(), TEXT("CardManagementBus"));
 		Comp->RegisterComponent();
 	}
 }

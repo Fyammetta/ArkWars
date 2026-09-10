@@ -4,22 +4,11 @@
 #include "CardMoveTransaction.h"
 
 #include "ArkWars/ArkWars.h"
+#include "ArkWars/Battle/Toolkits/BattleFunctionLibrary.h"
 #include "ArkWars/Battle/Toolkits/CardContainerInterface.h"
 #include "ArkWars/Battle/Toolkits/GameMessage.h"
 #include "ArkWars/Battle/Transaction/EventTags.h"
 
-
-namespace 
-{
-	//容器解析：Actor 自身实现接口则自身优先（ACardTableManager、ABattlePlayerState 均如此）；
-	//未实现接口的 Actor 无组件转发分支，直接返回 nullptr
-	ICardContainerInterface* GetInterface(AActor* Target)
-	{
-		if (Target && Target->Implements<UCardContainerInterface>()) return Cast<ICardContainerInterface>(Target); 
-		
-		return nullptr;
-	}
-}
 
 void UCardMoveTransaction::Execute()
 {
@@ -32,9 +21,9 @@ void UCardMoveTransaction::Execute()
 	
 	FoldMods();
 	
-	//③ 折叠修正后解析两端容器
-	auto From = GetInterface(Instigator.Get());
-	auto To = GetInterface(Targets[0].Get());
+	//③ 折叠修正后解析两端容器（区域解析唯一入口，卷 08 §4 / P2 §2-F）
+	auto From = UBattleFunctionLibrary::ResolveContainer(Instigator.Get(), Message->_From);
+	auto To = UBattleFunctionLibrary::ResolveContainer(Targets[0].Get(), Message->_To);
 	
 	//④ 同容器同区自移无意义，直接判失败
 	if (From == To && Message->_From == Message->_To)
@@ -63,8 +52,8 @@ void UCardMoveTransaction::FoldMods()
 
 bool UCardMoveTransaction::Validate() const
 {
-	//发起方必须有效且可解析为容器
-	if (!Instigator.IsValid() || !GetInterface(Instigator.Get()) )
+	//发起方必须有效且可解析为容器（此时 Message 尚未校验，区域参数按空标签传入）
+	if (!Instigator.IsValid() || !UBattleFunctionLibrary::ResolveContainer(Instigator.Get(), FGameplayTag::EmptyTag) )
 	{
 		UE_LOG(LogCard, Warning, TEXT("[UCardMoveTransaction][Validate] Instigator %s is illegal"), (Instigator.IsValid() ? *Instigator->GetName() : TEXT("nullptr")));
 		return false;
@@ -78,7 +67,7 @@ bool UCardMoveTransaction::Validate() const
 		return false;
 	}
 	//目标必须有效且可解析为容器
-	if (!Targets[0].IsValid() || !GetInterface(Targets[0].Get()))
+	if (!Targets[0].IsValid() || !UBattleFunctionLibrary::ResolveContainer(Targets[0].Get(), FGameplayTag::EmptyTag))
 	{
 		UE_LOG(LogCard, Warning, TEXT("[UCardMoveTransaction][Validate] Target %s is illegal"), (Targets[0].IsValid() ? *Targets[0]->GetName() : TEXT("nullptr")));
 		return false;

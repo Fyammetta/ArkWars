@@ -7,6 +7,7 @@
 #include "ArkWars/Battle/System/SkillManagerSubsystem.h"
 #include "ArkWars/Battle/System/CardManagerSubsystem.h"
 #include "ArkWars/Battle/System/BattleGameFlowSubsystem.h"
+#include "ArkWars/Battle/Toolkits/CardContainerInterface.h"
 
 UCardManagerSubsystem* UBattleFunctionLibrary::GetCardManager(const UObject* WorldContextObject)
 {
@@ -35,6 +36,32 @@ UBattleGameFlowSubsystem* UBattleFunctionLibrary::GetBattleManager(const UObject
 	if (!World) return nullptr;
 
 	return World->GetSubsystem<UBattleGameFlowSubsystem>();
+}
+
+ICardContainerInterface* UBattleFunctionLibrary::ResolveContainer(AActor* Owner, const FGameplayTag& Area)
+{
+	//空归属：无容器可解析（桌面 Actor 由交易 Instigator 自身承载，玩家侧由 PlayerState 自身承载）
+	if (!Owner) return nullptr;
+
+	//自身优先：ACardTableManager / ABattlePlayerState 均自身实现接口，直接取自身
+	if (Owner->Implements<UCardContainerInterface>())
+		return Cast<ICardContainerInterface>(Owner);
+
+	//后备：Owner 未实现接口时取其名下容器组件——Area 有效则优先命中该区域的组件，
+	//否则退化为首个容器组件（当前两端 Actor 均自身实现，走不到此分支）
+	ICardContainerInterface* Fallback = nullptr;
+	for (UActorComponent* Component : Owner->GetComponentsByInterface(UCardContainerInterface::StaticClass()))
+	{
+		if (ICardContainerInterface* Container = Cast<ICardContainerInterface>(Component))
+		{
+			if (Area.IsValid() && Container->GetAreaKeys().Contains(Area))
+				return Container;
+			if (!Fallback)
+				Fallback = Container;
+		}
+	}
+
+	return Fallback;
 }
 
 int32 UBattleFunctionLibrary::FilterCardByPredicate(const TArray<FArkCard>& Cards, const TFunction<bool(const FArkCard&)>& Predicate, TArray<FArkCard>& OutCards) 
