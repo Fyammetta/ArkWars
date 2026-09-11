@@ -49,16 +49,27 @@ class ARKWARS_API USkillManagerSubsystem : public UWorldSubsystem
 	
 	TMap<FGameplayTag, TSharedPtr<FSkillInfo>> SkillMapping;
 	
+	TMap<FGameplayTag, TArray<FSkillListenerEntry>> SkillTimings;
+	
 public:
-	virtual bool ShouldCreateSubsystem(UObject* Outer) const { return true; }
-	virtual void Initialize(FSubsystemCollectionBase& Collection);
-	virtual void Deinitialize();
+	virtual bool ShouldCreateSubsystem(UObject* Outer) const override { return true; }
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
 	
 	TSharedPtr<FSkillInfo> GetCurrentSkillByTag(const FGameplayTag& Tag);
 	
-private:
-	void OnAllOperatorSelected(const TArray<FOperatorCardInfo>& Operators);
+	 TArray<FSkillListenerEntry> GetSkillListeners(const FGameplayTag& Timing) const;
 	
+	void RegisterSkillTiming(const FGameplayTag& Timing, FSkillListenerEntry&& Entry);
+	
+	void UnregisterSkillTiming(const FGameplayTag& Timing, USkillComponentBase* Owner);
+	
+private:
+	///	索引/登记的服务器门控判据（与 UBattleGameFlowSubsystem 同口径）：时机索引只服务开窗，开窗仅服务器
+	bool IsRunningOnServer() const { return GetWorld() ? GetWorld()->GetNetMode() < NM_Client : false; }
+
+	void OnAllOperatorSelected(const TArray<FOperatorCardInfo>& Operators);
+
 	TSharedPtr<FSkillInfo> AppendSkill(const FGameplayTag& Tag);
 	
 	FString GetLogNetContext() const noexcept

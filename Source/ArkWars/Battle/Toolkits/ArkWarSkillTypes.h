@@ -6,6 +6,7 @@
 #include "ArkWarSkillTypes.generated.h"
 
 class USkillComponentBase;
+class APlayerState;
 
 UENUM(BlueprintType)
 enum ESkillActivateType : uint8
@@ -61,4 +62,21 @@ struct FSkillComponentMapping : public FTableRowBase
 	/// 技能组件类
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<USkillComponentBase> Comp;
+};
+
+struct FSkillListenerEntry
+{
+	TWeakObjectPtr<USkillComponentBase> Skill;
+	
+	TWeakObjectPtr<APlayerState> Owner;
+	
+	bool operator==(const FSkillListenerEntry& Other) const
+	{
+		return Skill == Other.Skill;
+	}
+	
+	bool IsValid() const
+	{
+		return Skill.IsValid() && Owner.IsValid();
+	}
 };
