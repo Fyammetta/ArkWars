@@ -22,6 +22,10 @@ public:
 	virtual void FoldMods() override;			// 修正折叠（公开族钩子，供族 Execute 开头调；移动族为直通空实现）
 
 protected:
+	///	移动族登记的查询时机：Event.Timing.Card.PreMove（卷 04 §3"在哪些时机被查询"）——
+	///	Execute 前开查询窗，是窗口内修改 Num/From/To 的唯一干预点（P3 验收 §4.2）
+	virtual TArray<FGameplayTag> GetQueryTimingTags() const override;
+
 	virtual void Execute() override;			// 交易主体：校验 → 源区取出 → 目标区写入 → 收尾（受保护族钩子，驱动器经基类 Drive() 进入）
 	virtual bool Validate() const override;				// 入参校验：Instigator / Targets / 消息合法性
 	virtual void BroadcastFinish(bool bSuccess) override;	// 收尾广播：落子成功即广播移动事实（Notify::Card::Moved）

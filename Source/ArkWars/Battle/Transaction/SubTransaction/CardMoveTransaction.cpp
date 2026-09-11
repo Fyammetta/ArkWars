@@ -46,6 +46,13 @@ void UCardMoveTransaction::Execute()
 	}
 }
 
+TArray<FGameplayTag> UCardMoveTransaction::GetQueryTimingTags() const
+{
+	//	族登记（卷 04）：移动交易在落子前只开一个查询窗（PreMove）；
+	//	基类 QueryTimings 会以此开 Tx = this 的窗口，策略 InOrder（P3 最小集）
+	return { Timing::Card::PreMove };
+}
+
 //TODO: 修正折叠当前为空实现（直通），修正链待接（P2 §2-D）
 void UCardMoveTransaction::FoldMods()
 {

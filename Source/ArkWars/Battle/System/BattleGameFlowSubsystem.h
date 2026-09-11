@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "ArkWars/Battle/Toolkits/ArkWarDelegates.h"
 #include "ArkWars/Battle/Toolkits/GameMessage.h"
+#include "ArkWars/Battle/Transaction/EventTypes.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "BattleGameFlowSubsystem.generated.h"
 
@@ -108,7 +109,52 @@ public:
 	void DriveTransaction();
 	
 	/** 当交易实例被执行后，广播并准备执行下一条 */
-	void OnTransactionFinished(UBattleTransaction* Tx);	
+	void OnTransactionFinished(UBattleTransaction* Tx);
+
+	///	查询窗口管理（P3：单层窗口 + InOrder 最小策略，卷 03 §4 / 卷 10 §2 / P3 §3.2）
+
+	/**
+	 *	唯一开窗入口：阶段机（Advance 遇 _Pre/_Post）与交易驱动（QueryTimings）共用，杜绝第二套窗口实现。
+	 *	流程 = 查时机索引 → 合法预检 → 填 Responders → 广播 FWindowOpened → 上锁询问（InOrder 逐人）→ 关窗回调。
+	 *	推进完全事件驱动（响应提交/放弃驱动游标），引擎不轮询、不阻塞等待。
+	 *	@param EventTag		本次窗口的查询时机（Event.Timing.*，卷 03 §3.1）
+	 *	@param Tx			窗口负载 = 交易引用（响应者从它拿 Tx 调 AppendModification）；纯阶段时机传 nullptr
+	 *	@param Policy		窗口策略（开窗参数，不进入 FResponseWindow 数据形状，卷 10 §2）；P3 只实现 InOrder
+	 */
+	void OpenTimingWindow(const FGameplayTag& EventTag, UBattleTransaction* Tx, EWindowPolicy Policy);
+
+	/**
+	 *	窗口内响应提交（未来 ServerRPC 的服务端落点）：
+	 *	二次校验 = 窗口在场 + State.Responding 锁内 + 提交者在名单内且正被询问 → Tx->AppendModification(Req) → InOrder 推进下一位
+	 */
+	void SubmitWindowResponse(APlayerState* Responder, const FTransactionModRequest& Req);
+
+	/** 窗口内放弃（未来 ServerRPC 的服务端落点）：校验当前被询问者后直接推进下一位 */
+	void DeclineWindowResponse(APlayerState* Responder);
+
+	///	C 面事件化委托实例（声明见 ArkWarDelegates.h，广播点登记见卷 12 §5.2）：
+	///	服务器侧观察点，订阅者仅日志/表现/调试——广播是旁路，回调异常不得影响推进
+	FWindowOpenedDelegate OnWindowOpened;
+	FWindowClosedDelegate OnWindowClosed;
+	FTransactionModifiedDelegate OnTransactionModified;
+
+private:
+	///	窗口私有状态（P3 单层窗口：多轮链/响应链嵌套留 P7，卷 10 §3）
+
+	TOptional<FResponseWindow> ActiveWindow;					//	当前悬停窗口（TStrongObjectPtr 强持有 Tx，防窗口悬停期被 GC）
+	EWindowPolicy ActivePolicy = EWindowPolicy::InOrder;		//	本窗策略（随开窗参数存，不进窗口形状）
+	int32 ResponderCursor = 0;									//	InOrder 询问游标：指向"当前正被询问"的响应者
+	bool bAnyResponded = false;									//	本窗是否有人响应过（FWindowClosed 广播负载）
+	bool bRespondingLock = false;								//	State.Responding 锁：窗口期阻断无关输入，关窗撤锁（P3 §3.3）
+
+	/** ①②③ 查时机索引 → 合法预检 → 排序填名单（卷 12 §4.1）；索引未建时返回空表 = "无监听直通"（P3 §7） */
+	TArray<FResponseEntry> CollectResponders(const FGameplayTag& TimingTag, UBattleTransaction* Tx) const;
+
+	/** InOrder 推进：询问游标处响应者（下发候选），问完全员 → 关窗 */
+	void AskNextResponder();
+
+	/** 关窗唯一收口：撤锁 → 复位窗口 → 广播 FWindowClosed → 回调持有者（交易 OnWindowClosed / 阶段机 Advance），任何路径不悬挂 */
+	void CloseTimingWindow();
 
 };
 

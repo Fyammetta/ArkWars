@@ -5,7 +5,12 @@ class UBattleTransaction;
 
 
 
-
+enum class EWindowPolicy
+{
+	All,
+	InOrder,
+	FirstOnly
+};
 
 
 struct FTransactionModRequest
