@@ -5,7 +5,7 @@
 #include "ArkWars/ArkWars.h"
 #include "ArkWars/Battle/ArkWarBattleSettings.h"
 #include "GameFramework/PlayerState.h"
-#include "ArkWars/Battle/Component/Skill/SkillBaseComponent.h"
+#include "ArkWars/Battle/Component/Skill/SkillComponentBase.h"
 #include "ArkWars/Settings/OperatorSettings.h"
 
 FSkillInfo::FSkillInfo()

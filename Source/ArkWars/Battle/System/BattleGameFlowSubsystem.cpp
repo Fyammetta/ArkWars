@@ -4,12 +4,15 @@
 #include "BattleGameFlowSubsystem.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
+#include "SkillManagerSubsystem.h"
 #include "ArkWars/ArkWars.h"
 #include "ArkWars/Battle/ArkWarBattleSettings.h"
 #include "ArkWars/Battle/Component/Card/CardManagementBusComponent.h"
 #include "ArkWars/Battle/Component/GameFlow/GamePhaseManagerComponent.h"
 #include "ArkWars/Battle/Component/GameMode/GameModeComponentBase.h"
+#include "ArkWars/Battle/Component/Skill/SkillComponentBase.h"
 #include "ArkWars/Battle/Toolkits/ArkWarFlowTypes.h"
+#include "ArkWars/Battle/Toolkits/BattleFunctionLibrary.h"
 #include "ArkWars/Battle/Toolkits/GameMessage.h"
 #include "ArkWars/Battle/Transaction/SubTransaction/CardMoveTransaction.h"
 #include "GameFramework/GameStateBase.h"
@@ -375,34 +378,122 @@ void UBattleGameFlowSubsystem::OpenTimingWindow(const FGameplayTag& EventTag, UB
 
 TArray<FResponseEntry> UBattleGameFlowSubsystem::CollectResponders(const FGameplayTag& TimingTag, UBattleTransaction* Tx) const
 {
-	//	未来形态（卷 12 §4.1 ①②③，P3 §3.3）：
-	//	① 查 USkillManagerSubsystem 的"时机 → 监听技能"索引（TMap<FGameplayTag, TArray<...>>）得候选技能；
-	//	② 逐技能合法预检：来源在场/可用；账本余量 P6 前常量放行（占位注释标注，卷 07）；
-	//	③ 排序 = ResponsePriority 降序 × 座次（从当前回合玩家起顺/逆时针，ISeatLayout，卷 10 §2），
-	//	   平手取注册稳定序 → 填 FResponseEntry{ Tx, Priority, Owner, Key }。
-	//	现状：时机索引未建 → 返回空表，每窗走"无监听直通"路径（查表空表 = 最低成本，P3 §7）。
-	//	TODO(P3 §3.3)：USkillManagerSubsystem 建好时机索引后接入此处
-	return {};
+	if (!IsRunningOnServer())
+	{
+		return {};
+	}
+
+	//	① 查时机索引（卷 12 §4.1，P3 §3.3）：USkillManagerSubsystem 的"时机 → 监听技能"表；
+	//	索引为空表时按值返回空快照 → 窗口侧走"无监听直通"零延迟路径（P3 §7）
+	auto SkillMgr = UBattleFunctionLibrary::GetSkillManager(this);
+	if (!SkillMgr)
+	{
+		return {};
+	}
+
+	//	座次轮转依赖阶段管理器：座次信息缺失时名单无从排序，与索引缺失同待遇（宁空勿乱）
+	auto PhaseMgr = GetPhaseManager();
+	if (!PhaseMgr)
+	{
+		return {};
+	}
+
+	const TArray<FSkillListenerEntry> Listeners = SkillMgr->GetSkillListeners(TimingTag);
+
+	//	② 合法预检：来源在场/可用（IsValid = Skill 与 Owner 双双存活）；
+	//	账本余量 P6 前常量放行（卷 07 占位）。逐条转换 FSkillListenerEntry → FResponseEntry
+	TArray<FResponseEntry> RetArr;
+	RetArr.Reserve(Listeners.Num());
+	for (const FSkillListenerEntry& Listener : Listeners)
+	{
+		if (!Listener.IsValid())
+		{
+			continue;
+		}
+
+		FResponseEntry Entry;
+		Entry.Tx = TStrongObjectPtr(Tx);							//	窗口负载由开窗方带入；纯阶段时机为空
+		Entry.Priority = Listener.Priority;
+		Entry.Owner = Listener.Owner;
+		Entry.Key = Listener.Skill->GetSkillTag();
+		RetArr.Add(MoveTemp(Entry));
+	}
+
+	//	③ 排序 = Priority 降序 × 座次（从当前回合玩家起轮转，卷 10 §2），平手取注册稳定序。
+	//	必须 StableSort：Sort 是 introsort 不稳定，会吃掉注册序承诺；
+	//	比较器严守严格弱序（相等返回 false），非法比较器会让 introsort 越界
+	const int32 CurPlayer = PhaseMgr->GetPlayerIndex();
+	const int32 PlayerCount = PhaseMgr->GetPlayerCount();
+	auto SeatOf = [PhaseMgr, CurPlayer, PlayerCount](const FResponseEntry& Entry)
+	{
+		const int32 Index = PhaseMgr->GetPlayerIndex(Entry.Owner.Get());
+		//	不在座次表（INDEX_NONE）或座次表未就绪 → 沉底
+		if (PlayerCount <= 0 || Index < 0 || Index >= PlayerCount)
+		{
+			return PlayerCount;
+		}
+		//	轮转为"从当前玩家起"的相对座次：差值恒在 (-PlayerCount, PlayerCount)，单次加模即非负
+		return (Index - CurPlayer + PlayerCount) % PlayerCount;
+	};
+
+	RetArr.StableSort([&SeatOf](const FResponseEntry& A, const FResponseEntry& B)
+	{
+		if (A.Priority != B.Priority)
+		{
+			return A.Priority > B.Priority;		//	优先级降序
+		}
+		return SeatOf(A) < SeatOf(B);			//	座次升序，严格弱序禁用 <=
+	});
+
+	return RetArr;
 }
 
 void UBattleGameFlowSubsystem::AskNextResponder()
 {
 	if (!ActiveWindow.IsSet()) return;
 
+	
+	
 	const TArray<FResponseEntry>& Responders = ActiveWindow->Responders;
-	if (Responders.IsValidIndex(ResponderCursor))
+	while (Responders.IsValidIndex(ResponderCursor))
 	{
-		//	InOrder：按序逐人问——客户端只收"你有响应权 + 候选"（P3 只定下发协议，UI 是 P7）。
-		//	引擎在此返回、不轮询不阻塞：下一位由该玩家经 ServerRPC 提交/放弃后驱动游标推进。
-		//	（All/FirstOnly 策略的差异只在"问几个人、何时收敛"，推进骨架不变——P3 不实现，卷 10 §2）
 		const FResponseEntry& Entry = Responders[ResponderCursor];
-		UE_LOG(LogGamePlay, Log, TEXT("[GameFlow][AskNextResponder] Asking responder %d/%d (Key:%s)"),
+
+		//	Owner 弱指针先验活：收集与询问之间隔着事件时间，悬停期离场者不可裸解引用（卷 10 §3）
+		APlayerState* Owner = Entry.Owner.Get();
+		UActorComponent* Comp = Owner
+			? Owner->FindComponentByTag(USkillComponentBase::StaticClass(), Entry.Key.GetTagName())
+			: nullptr;
+
+		if (auto Skill = Cast<USkillComponentBase>(Comp))
+		{
+			//	InOrder：按序逐人问——客户端只收"你有响应权 + 候选"（P3 只定下发协议，UI 是 P7）。
+			//	引擎在此返回、不轮询不阻塞：下一位由该玩家经 ServerRPC 提交/放弃后驱动游标推进。
+			//	（All/FirstOnly 策略的差异只在"问几个人、何时收敛"，推进骨架不变——P3 不实现，卷 10 §2）
+			UE_LOG(LogGamePlay, Log, TEXT("[GameFlow][AskNextResponder] Asking responder %d/%d (Key:%s)"),
+				ResponderCursor + 1, Responders.Num(), *Entry.Key.ToString())
+			//	TODO(P3 §3.3)：候选下发给 Entry.Owner 的客户端（表现复制通道，卷 11）
+
+			Skill->OnCanActivate(ActiveWindow->Timing);
+			switch (ActivePolicy)
+			{
+			case EWindowPolicy::InOrder: 	
+				return;		//	询问已送达；即便技能在钩子里同步提交/放弃（重入推进），本帧也只需返回
+			case EWindowPolicy::All:
+				ResponderCursor++;
+				continue;
+			case EWindowPolicy::FirstOnly:
+				CloseTimingWindow();
+			}
+		}
+
+		//	技能组件失联（已销毁/未挂 Tag）：视同放弃推进下一位，不留悬挂窗口（任何路径不悬挂，P3 §3.2）
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][AskNextResponder] Responder %d/%d unreachable (Key:%s), treated as decline"),
 			ResponderCursor + 1, Responders.Num(), *Entry.Key.ToString())
-		//	TODO(P3 §3.3)：候选下发给 Entry.Owner 的客户端（表现复制通道，卷 11）
-		return;
+		ResponderCursor++;
 	}
 
-	//	全员响应/放弃完毕 → 空结果或已有结果关窗（修改已在提交阶段逐条落入 Tx->ModeRequests）
+	//	全员响应/放弃/失联完毕 → 空结果或已有结果关窗（修改已在提交阶段逐条落入 Tx->ModeRequests）
 	CloseTimingWindow();
 }
 
@@ -440,8 +531,19 @@ void UBattleGameFlowSubsystem::SubmitWindowResponse(APlayerState* Responder, con
 	bAnyResponded = true;
 
 	//	InOrder 推进：响应完 → 下一位（问完全员时 AskNextResponder 内部收口关窗）
-	ResponderCursor++;
-	AskNextResponder();
+	switch (ActivePolicy)
+	{
+		case EWindowPolicy::InOrder: 	
+			ResponderCursor++;
+			return AskNextResponder();
+		case EWindowPolicy::All:
+			{
+				//TODO: 
+			}
+		case EWindowPolicy::FirstOnly:
+			CloseTimingWindow();
+	}
+
 }
 
 void UBattleGameFlowSubsystem::DeclineWindowResponse(APlayerState* Responder)
@@ -467,8 +569,17 @@ void UBattleGameFlowSubsystem::DeclineWindowResponse(APlayerState* Responder)
 
 	//	放弃 = 不落任何修改，直接推进下一位；全员弃 → AskNextResponder 收口 → 空结果关窗。
 	//	UI 倒计时到点也走本入口（客户端直接请求关闭）——关闭时机统一只通过 UI 决定，引擎侧不挂定时器
-	ResponderCursor++;
-	AskNextResponder();
+	switch (ActivePolicy)
+	{
+	case EWindowPolicy::FirstOnly:
+	case EWindowPolicy::InOrder: 	
+		ResponderCursor++;
+		return AskNextResponder();
+	case EWindowPolicy::All:
+		{
+			//TODO: 
+		}
+	}
 }
 
 void UBattleGameFlowSubsystem::CloseTimingWindow()

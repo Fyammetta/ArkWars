@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "SkillBaseComponent.generated.h"
+#include "SkillComponentBase.generated.h"
 
 
 struct FGameplayTag;
@@ -23,7 +23,7 @@ protected:
 	
 public:
 	UFUNCTION(BlueprintCallable,BlueprintPure, Category=Skill)
-	static UActorComponent* CreateSkill(APlayerState* Owner, const FGameplayTag& Skill);
+	static USkillComponentBase* CreateSkill(APlayerState* Owner, const FGameplayTag& Skill);
 	
 	template <typename T = USkillComponentBase>
 	static T* CreateSkill(APlayerState* Owner, const FGameplayTag& Skill) { return Cast<T>(CreateSkill(Owner, Skill)); };

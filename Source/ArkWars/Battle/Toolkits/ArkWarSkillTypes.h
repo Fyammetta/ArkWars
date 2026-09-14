@@ -67,9 +67,12 @@ struct FSkillComponentMapping : public FTableRowBase
 struct FSkillListenerEntry
 {
 	TWeakObjectPtr<USkillComponentBase> Skill;
-	
+
 	TWeakObjectPtr<APlayerState> Owner;
-	
+
+	///	响应优先级：开窗名单排序主键（降序，卷 12 §4.1 ③），登记时由技能侧带入
+	int32 Priority = 0;
+
 	bool operator==(const FSkillListenerEntry& Other) const
 	{
 		return Skill == Other.Skill;
