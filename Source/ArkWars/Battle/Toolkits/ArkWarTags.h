@@ -31,6 +31,8 @@ namespace CardTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Root)				// Card
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Class)				// Card.Class
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Type)				// Card.Type
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(JudgeType)			// Card.Type.Judge
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(EquipType)			// Card.Type.Equip
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Suit)				// Card.Suit
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Diamond)				// Card.Suit.Diamond
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Heart)				// Card.Suit.Heart
@@ -57,6 +59,7 @@ namespace CardTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Equipment)			// Card.Area.Equipment
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Cache)				// Card.Area.Cache
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Used)				// Card.Area.Used
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Deprecated)			// Card.Area.Deprecated
 
 	/// 运行期按字符取点数标签（'A','2'..'9','X','J','Q','K'），非法输入返回无效标签
 	ARKWARS_API FGameplayTag GetPointTag(TCHAR PointChar);

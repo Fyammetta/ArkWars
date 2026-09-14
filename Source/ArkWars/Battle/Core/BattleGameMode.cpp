@@ -20,8 +20,4 @@ void ABattleGameMode::InitGameMode(const FGameplayTag& ModeTag)
 			Comp->RegisterComponent();
 		}
 	}
-	check(Comp);
-	
-	Comp->InitCardDeck();
-	Comp->AllocateIdentity();
 }

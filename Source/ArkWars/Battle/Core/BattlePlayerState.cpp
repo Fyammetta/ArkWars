@@ -4,10 +4,111 @@
 #include "BattlePlayerState.h"
 #include "AbilitySystemComponent.h"
 #include "ArkWars/Battle/Component/Card/CardManagementBusComponent.h"
+#include "ArkWars/Battle/Component/GameMode/GameModeComponentBase.h"
+#include "GameFramework/GameModeBase.h"
+#include "Net/UnrealNetwork.h"
 
 ABattlePlayerState::ABattlePlayerState()
 {
 	Asc = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+}
+
+TArray<FArkCard> ABattlePlayerState::GetCardsByKey(const FGameplayTag& Area) const
+{
+	ICardContainerInterface* Container = nullptr;
+	for (UActorComponent* Component : GetComponentsByInterface(UCardContainerInterface::StaticClass()))
+	{
+		Container = Cast<ICardContainerInterface>(Component);
+		if (Container && Container->GetAreaKeys().Contains(Area))
+			return Container->GetCardsByKey(Area);
+	}
+	
+	return {};
+}
+
+const FArkCard* ABattlePlayerState::GetCardById(int32 CardId) const
+{
+	ICardContainerInterface* Container = nullptr;
+	for (UActorComponent* Component : GetComponentsByInterface(UCardContainerInterface::StaticClass()))
+	{
+		Container = Cast<ICardContainerInterface>(Component);
+		if (Container && Container->GetCardById(CardId))
+			return Container->GetCardById(CardId);
+	}
+	
+	return nullptr;
+}
+
+TArray<int32> ABattlePlayerState::Select(const FGameplayTag& Area, const FMessageType& Msg) const
+{
+	ICardContainerInterface* Container = nullptr;
+	for (UActorComponent* Component : GetComponentsByInterface(UCardContainerInterface::StaticClass()))
+	{
+		Container = Cast<ICardContainerInterface>(Component);
+		if (Container && Container->GetAreaKeys().Contains(Area))
+			return Container->Select(Area, Msg);
+	}
+	
+	return {};
+}
+
+TArray<FArkCard> ABattlePlayerState::Consume(const FGameplayTag& Area, const TArray<int32>& CardIds)
+{
+	ICardContainerInterface* Container = nullptr;
+	for (UActorComponent* Component : GetComponentsByInterface(UCardContainerInterface::StaticClass()))
+	{
+		Container = Cast<ICardContainerInterface>(Component);
+		if (Container && Container->GetAreaKeys().Contains(Area))
+			return Container->Consume(Area, CardIds);
+	}
+	
+	return {};
+}
+
+EAreaWriteResult ABattlePlayerState::Add(const FGameplayTag& AreaKey, TArray<FArkCard>& Cards, const FMessageType& Msg)
+{
+	ICardContainerInterface* Container = nullptr;
+	for (UActorComponent* Component : GetComponentsByInterface(UCardContainerInterface::StaticClass()))
+	{
+		Container = Cast<ICardContainerInterface>(Component);
+		if (Container && Container->GetAreaKeys().Contains(AreaKey))
+			return Container->Add(AreaKey, Cards, Msg);
+	}
+	
+	return EAreaWriteResult::Mismatch;
+}
+
+TArray<FGameplayTag> ABattlePlayerState::GetAreaKeys() const
+{
+	TArray<FGameplayTag> AreaKeys{};
+	ICardContainerInterface* Container = nullptr;
+	for (UActorComponent* Component : GetComponentsByInterface(UCardContainerInterface::StaticClass()))
+	{
+		Container = Cast<ICardContainerInterface>(Component);
+		if (Container)
+			AreaKeys.Append(Container->GetAreaKeys());
+	}
+	
+	return AreaKeys;
+}
+
+void ABattlePlayerState::NotifySelectOperator(const TArray<FName>& OperatorList)
+{
+	if (!HasAuthority()) return;
+	
+	Client_NotifySelectOperator(OperatorList);
+}
+
+void ABattlePlayerState::OnOperatorSelected(const FName& SelectedOperator)
+{
+	Server_OnOperatorSelected(SelectedOperator);
+}
+
+void ABattlePlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(ABattlePlayerState, Operator);
 }
 
 void ABattlePlayerState::BeginPlay()
@@ -15,9 +116,26 @@ void ABattlePlayerState::BeginPlay()
 	Super::BeginPlay();
 	if (HasAuthority())
 	{
-		auto Comp = NewObject<UCardManagementBusComponent>(this,UCardManagementBusComponent::StaticClass(), TEXT("CardManagementBus"));
+		auto Comp = NewObject<UCardManagementBusComponent>(this, UCardManagementBusComponent::StaticClass(), TEXT("CardManagementBus"));
 		Comp->RegisterComponent();
 	}
+}
+
+void ABattlePlayerState::Server_OnOperatorSelected_Implementation(const FName& SelectedOperator)
+{
+	if (auto GM = GetWorld() ? GetWorld()->GetAuthGameMode() : nullptr)
+	{
+		if (auto Comp = GM->FindComponentByClass<UGameModeComponentBase>())
+		{
+			Operator = SelectedOperator;
+			Comp->CheckOperatorSelection(this, SelectedOperator);
+		}
+	}
+}
+
+void ABattlePlayerState::Client_NotifySelectOperator_Implementation(const TArray<FName>& OperatorList)
+{
+	
 }
 
 

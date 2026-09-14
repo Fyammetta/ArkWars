@@ -73,6 +73,9 @@ void UCardManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UCardManagerSubsystem::Deinitialize()
 {
+	//实体 Id 计数器归零：Id 只要求"本局唯一"，新局自 0 重新分配（原实现跨局持续累加）
+	InitializedCardCount = 0;
+
 	Super::Deinitialize();
 }
 
@@ -136,4 +139,9 @@ FGameplayTag UCardManagerSubsystem::GetCardType(const FGameplayTag& Tag)
 	
 	Check(TEXT("GetCardType"),Tag);
 	return FGameplayTag();
+}
+
+FArkCard UCardManagerSubsystem::AllocateNewCard(const FGameplayTag& Class, const FGameplayTag& Suit, const FGameplayTag& Point)
+{
+	return FArkCard{InitializedCardCount++, FGameplayTagContainer::CreateFromArray(TArray{Class, Suit, Point})};
 }

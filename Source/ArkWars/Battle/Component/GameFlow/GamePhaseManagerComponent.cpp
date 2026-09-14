@@ -4,9 +4,8 @@
 #include "GamePhaseManagerComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "AbilitySystemComponent.h"
-#include "AbilitySystemInterface.h"
 #include "ArkWars/ArkWars.h"
-#include "ArkWars/Battle/Toolkits/ArkWarTags.h"
+#include "ArkWars/Battle/Toolkits/ArkWarDelegates.h"
 #include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
 
@@ -103,9 +102,15 @@ void UGamePhaseManagerComponent::InitPlayers(int32 Start)
 	{
 		return;
 	}
-	PlayersInOrder = GS->PlayerArray;
-	ActivePlayerIndex = Start % PlayersInOrder.Num();
+
+	PlayersInOrder.Reset(PlayersInOrder.Num());
 	FinishedPlayerIndex.Reset(PlayersInOrder.Num());
+	for (int i = Start; i < Start + GS->PlayerArray.Num(); ++i)
+	{
+		PlayersInOrder.Add(GS->PlayerArray[i %  GS->PlayerArray.Num()]);
+	}
+	ActivePlayerIndex = 0;
+
 }
 
 int32 UGamePhaseManagerComponent::GetPlayerIndex(APlayerState* Player) const
@@ -117,9 +122,9 @@ int32 UGamePhaseManagerComponent::GetPlayerIndex(APlayerState* Player) const
 
 APlayerState* UGamePhaseManagerComponent::GetPlayerByIndex(int32 Index) const
 {
-	Index = PlayersInOrder.IsValidIndex(Index) ? ActivePlayerIndex : Index % PlayersInOrder.Num();
-		
-	return PlayersInOrder[Index];
+	if (PlayersInOrder.IsEmpty()) return nullptr;
+	
+	return PlayersInOrder.IsValidIndex(Index) ? PlayersInOrder[Index % PlayersInOrder.Num()] : PlayersInOrder[ActivePlayerIndex];
 }
 
 int32 UGamePhaseManagerComponent::GetPlayerCount() const
@@ -149,12 +154,12 @@ void UGamePhaseManagerComponent::BroadcastActivePlayerChange() const
 
 void UGamePhaseManagerComponent::BroadcastRoundRefresh() const
 {
+	OnGameRoundChanged.Broadcast();
 }
 
 void UGamePhaseManagerComponent::NetMulticast_OnCalledStartGame_Implementation()
 {
 	BroadcastPhaseChange();
-
 }
 
 void UGamePhaseManagerComponent::OnCalledStartGame()

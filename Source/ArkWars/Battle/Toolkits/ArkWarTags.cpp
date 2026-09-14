@@ -13,6 +13,8 @@ namespace CardTags
 	UE_DEFINE_GAMEPLAY_TAG(Root, "Card");
 	UE_DEFINE_GAMEPLAY_TAG(Class, "Card.Class");
 	UE_DEFINE_GAMEPLAY_TAG(Type, "Card.Type");
+	UE_DEFINE_GAMEPLAY_TAG(JudgeType, "Card.Type.Judge");
+	UE_DEFINE_GAMEPLAY_TAG(EquipType, "Card.Type.Equip");
 	UE_DEFINE_GAMEPLAY_TAG(Suit, "Card.Suit");
 	UE_DEFINE_GAMEPLAY_TAG(Diamond, "Card.Suit.Diamond");
 	UE_DEFINE_GAMEPLAY_TAG(Heart, "Card.Suit.Heart");
@@ -39,6 +41,7 @@ namespace CardTags
 	UE_DEFINE_GAMEPLAY_TAG(Equipment, "Card.Area.Equipment");
 	UE_DEFINE_GAMEPLAY_TAG(Cache, "Card.Area.Cache");
 	UE_DEFINE_GAMEPLAY_TAG(Used, "Card.Area.Used");
+	UE_DEFINE_GAMEPLAY_TAG(Deprecated, "Card.Area.Deprecated");
 
 	FGameplayTag GetPointTag(TCHAR PointChar)
 	{
