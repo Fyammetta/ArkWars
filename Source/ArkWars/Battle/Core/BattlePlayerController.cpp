@@ -78,6 +78,18 @@ void ABattlePlayerController::TryActivateSkill(const FGameplayTag& SkillTag)
 {
 }
 
+void ABattlePlayerController::Client_OpenResponseWindow_Implementation(const FClientResponseWindow& Window)
+{
+}
+
+void ABattlePlayerController::Server_SubmitWindowResponse_Implementation(const FWindowResponseRequest& Req)
+{
+}
+
+void ABattlePlayerController::Server_DeclineWindowResponse_Implementation(int32 WindowSerial)
+{
+}
+
 void ABattlePlayerController::Server_UseCard_Implementation(APlayerState* Source, const TArray<APlayerState*>& Targets, const FArkCard& Card)
 {
 	if (auto Comp = UCardComponentBase::Get(this, Card))

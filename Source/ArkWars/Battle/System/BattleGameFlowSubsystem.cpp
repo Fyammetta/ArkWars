@@ -14,6 +14,7 @@
 #include "ArkWars/Battle/Toolkits/ArkWarFlowTypes.h"
 #include "ArkWars/Battle/Toolkits/BattleFunctionLibrary.h"
 #include "ArkWars/Battle/Toolkits/GameMessage.h"
+#include "ArkWars/Battle/Transaction/EventTags.h"
 #include "ArkWars/Battle/Transaction/SubTransaction/CardMoveTransaction.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
@@ -212,9 +213,20 @@ void UBattleGameFlowSubsystem::Advance()
 	{
 		Comp->SetPhase(Next);
 		
+		//	停窗范围（卷 03 §8 / P3 §3.4①）：_Pre/_Post 全体 + Begin/Finish 两个主阶段——
+		//	后者是原方案的加宽（非笔误）；两族 tag 齐备、链路自洽：关窗后由 CloseTimingWindow 的
+		//	纯阶段分支再 Advance()，ResolveNextPhase 先消费 PhaseMsgQueue 再给下一站，同一个点不二次停窗
+		//	（无死循环）。索引判空即直通（"无监听直通"优先于"整点全开"，P3 §7）
 		if (Next == EGamePhase::Begin || Next == EGamePhase::Finish || IsPreOrPost(Next))
 		{
-			Next = NextInSequence(Next);
+			auto Timing = Timing::Phase::PhaseEnumToTimingTag(Next);
+			auto SkillMgr = UBattleFunctionLibrary::GetSkillManager(this);
+			if (SkillMgr && !SkillMgr->GetSkillListeners(Timing).IsEmpty())
+			{
+				OpenTimingWindow(Timing,nullptr,EWindowPolicy::InOrder);
+				return;
+			}
+			Next = ResolveNextPhase(Next);
 			continue;
 		}
 		break;
@@ -286,7 +298,7 @@ void UBattleGameFlowSubsystem::EnqueueTransaction(UBattleTransaction* Tx)
 	if (!Tx) return;
 	
 	PendingTransactions.Add(Tx);
-	if (ActiveTransaction.IsValid()) return;
+	if (ActiveTransaction.Get() != nullptr) return;
 	
 	DriveTransaction();
 }
@@ -317,12 +329,23 @@ void UBattleGameFlowSubsystem::OnTransactionFinished(UBattleTransaction* Tx)
 		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][OnTransactionFinished] Transaction finish notify should only be broadcast on server"))
 		return;
 	};
-	if (ActiveTransaction != Tx)
+	//	嵌套分支（卷 04 §3.2 不变量 1/5）：先问栈——栈顶 Child == Tx 即"子交易跑完"，只换手：
+	//	弹栈 + ActiveTransaction 归父，绝不可清空忙锁去拉下一笔（那会把挂起的父遗弃在栈里）。
+	//	换手成立的前提是栈帧两字段同为强引用（否则换手瞬间父/子无锚，GC 一到即悬空）
+	if (!NestedStack.IsEmpty() && NestedStack.Last().Child.Get() == Tx)
+	{
+		PopNestedTransaction(Tx);
+		return;
+	};
+
+	//	栈空（或本笔不在栈顶）→ 整条链收尾：校验当前结算者后清空忙锁 + 驱动下一笔。
+	//	挂在栈里的父若莫名走到这里会被下面的守卫拦下（忙锁此刻指向栈顶子，不等于父）
+	if (ActiveTransaction.Get() != Tx)
 	{
 		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][OnTransactionFinished] Transaction to remove is not active"))
 		return;
 	}
-	
+
 	ActiveTransaction = nullptr;
 	DriveTransaction();
 }
@@ -344,11 +367,20 @@ void UBattleGameFlowSubsystem::OpenTimingWindow(const FGameplayTag& EventTag, UB
 		return;
 	}
 
+	//	响应锁前置检查（卷 10 §4）：响应中不受理任何新窗口 = "窗口期无关输入被拒"在开窗侧的落点。
+	//	与单层保护不合并：两者拒的是不同的账（前者 = 窗口已悬停，后者 = 锁被持有/泄漏），告警需可分辨。
+	//	此处只查不置位——锁在空名单直通之后才正式持有（绝大多数移动窗走零延迟路径，不上锁）
+	if (IsResponding())
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][OpenTimingWindow] Response lock is held, new window rejected"))
+		return;
+	}
+
 	//	①②③ 查时机索引 → 合法预检 → 排序填 Responders 名单（卷 12 §4.1，实现见 CollectResponders）
 	FResponseWindow Window;
 	Window.Timing = EventTag;
 	Window.Tx = TStrongObjectPtr(Tx);								//	TStrongObjectPtr 强持有：防窗口悬停期交易被 GC；纯阶段时机为空
-	Window.Responders = CollectResponders(EventTag, Tx);
+	Window.Responders = CollectResponders(EventTag);
 	Window.Timeout = UArkWarBattleSettings::Get()->DefaultWindowTimeout;	//	时间预算从项目设置（Ark War Battle 页）取：关闭时机统一由 UI 决定，倒计时到点客户端直接请求关闭（= 放弃），引擎侧无定时器
 
 	ActiveWindow = MoveTemp(Window);
@@ -372,11 +404,18 @@ void UBattleGameFlowSubsystem::OpenTimingWindow(const FGameplayTag& EventTag, UB
 
 	//	⑤ State.Responding 上锁（阻断无关输入，关窗撤锁）→ InOrder 从游标 0 开始逐人询问。
 	//	此后函数返回，推进完全由响应提交（SubmitWindowResponse/DeclineWindowResponse）事件驱动
-	bRespondingLock = true;
+	//	失败理论不可达（前置检查已查过锁）；真发生（订阅者在 FWindowOpened 回调里抢锁）= 窗口已开，
+	//	必须配对关窗不留悬挂——此时无人响应过，走关窗收口等价于该窗从未开启
+	if (!TryEnterResponseLock())
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][OpenTimingWindow] Response lock was taken during open, window aborted"))
+		CloseTimingWindow();
+		return;
+	}
 	AskNextResponder();
 }
 
-TArray<FResponseEntry> UBattleGameFlowSubsystem::CollectResponders(const FGameplayTag& TimingTag, UBattleTransaction* Tx) const
+TArray<FResponseEntry> UBattleGameFlowSubsystem::CollectResponders(const FGameplayTag& TimingTag) const
 {
 	if (!IsRunningOnServer())
 	{
@@ -412,7 +451,6 @@ TArray<FResponseEntry> UBattleGameFlowSubsystem::CollectResponders(const FGamepl
 		}
 
 		FResponseEntry Entry;
-		Entry.Tx = TStrongObjectPtr(Tx);							//	窗口负载由开窗方带入；纯阶段时机为空
 		Entry.Priority = Listener.Priority;
 		Entry.Owner = Listener.Owner;
 		Entry.Key = Listener.Skill->GetSkillTag();
@@ -474,7 +512,7 @@ void UBattleGameFlowSubsystem::AskNextResponder()
 				ResponderCursor + 1, Responders.Num(), *Entry.Key.ToString())
 			//	TODO(P3 §3.3)：候选下发给 Entry.Owner 的客户端（表现复制通道，卷 11）
 
-			Skill->OnCanActivate(ActiveWindow->Timing);
+			Skill->OnCanActivate(ActiveWindow->Timing, ActiveWindow->Tx.IsValid() ? ActiveWindow->Tx.Get() : nullptr);
 			switch (ActivePolicy)
 			{
 			case EWindowPolicy::InOrder: 	
@@ -506,7 +544,7 @@ void UBattleGameFlowSubsystem::SubmitWindowResponse(APlayerState* Responder, con
 	}
 
 	//	二次校验（P3 §3.3）：窗口在场 + State.Responding 锁内——锁外的任何提交都是无关输入，拒绝
-	if (!ActiveWindow.IsSet() || !bRespondingLock)
+	if (!ActiveWindow.IsSet() || !IsResponding())
 	{
 		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][SubmitWindowResponse] No active responding window, submission rejected"))
 		return;
@@ -555,7 +593,7 @@ void UBattleGameFlowSubsystem::DeclineWindowResponse(APlayerState* Responder)
 	}
 
 	//	与提交同一套二次校验：窗口在场 + 锁内 + 提交者 = 当前被询问者
-	if (!ActiveWindow.IsSet() || !bRespondingLock)
+	if (!ActiveWindow.IsSet() || !IsResponding())
 	{
 		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][DeclineWindowResponse] No active responding window, decline rejected"))
 		return;
@@ -577,9 +615,108 @@ void UBattleGameFlowSubsystem::DeclineWindowResponse(APlayerState* Responder)
 		return AskNextResponder();
 	case EWindowPolicy::All:
 		{
-			//TODO: 
+			//TODO:
 		}
 	}
+}
+
+bool UBattleGameFlowSubsystem::TryEnterResponseLock()
+{
+	//	已在响应中：拒绝——锁状态未变，故不重复广播；调用方据点拒绝 + 日志（卷 10 §4）
+	if (bRespondingLock)
+	{
+		return false;
+	}
+	bRespondingLock = true;
+
+	//	旁路广播（卷 12 §5.2/§7）：锁切换观察点，订阅者回调抛错/耗时不得影响上锁与窗口推进
+	UE_LOG(LogGamePlay, Log, TEXT("[GameFlow][ResponseLock] Response lock entered"))
+	OnResponseLockChanged.Broadcast(true);
+	return true;
+}
+
+void UBattleGameFlowSubsystem::ExitResponseLock()
+{
+	//	幂等：未上锁时空操作（关窗路径可能重复到达，不重复广播）
+	if (!bRespondingLock)
+	{
+		return;
+	}
+	bRespondingLock = false;
+
+	UE_LOG(LogGamePlay, Log, TEXT("[GameFlow][ResponseLock] Response lock exited"))
+	OnResponseLockChanged.Broadcast(false);
+}
+
+bool UBattleGameFlowSubsystem::PushNestedTransaction(UBattleTransaction* Child)
+{
+	//	门控：与 Enqueue/Drive 同纪律，嵌套只在服务器发起（P3 §3.9）
+	if (!IsRunningOnServer())
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][PushNestedTransaction] Nested push should only happen on server"))
+		return false;
+	};
+	if (!Child)
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][PushNestedTransaction] Null child transaction rejected"))
+		return false;
+	};
+
+	//	深度上限（卷 04 §3.2 不变量 2）只作设计层约定，不落运行期校验：栈不设硬闸，深度由调用方账目约束
+	//	（P3 §3.9 的"超深拒绝分支"随之取消，2026-09-16 定）
+
+	//	拒绝分支①·非活动上下文（不变量 4）：父 = 当前结算者，就地取——父的身份在 Push 这一刻由子系统
+	//	自证，不由调用方传入（传参等于把"只有当前结算者能 Push"降级为调用方的口供）
+	if (!ActiveTransaction)
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][PushNestedTransaction] No active transaction, push rejected"))
+		return false;
+	};
+
+	//	拒绝分支②·防环（不变量 3）：子不得是当前结算者，也不得出现在栈内任一帧的 Parent/Child 链上——
+	//	两格都要查：被挂起的父只以 Parent 的形式留在帧里
+	if (Child == ActiveTransaction)
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][PushNestedTransaction] Self nested push rejected"))
+		return false;
+	}
+
+	for (const FNestedTransactionFrame& Frame : NestedStack)
+	{
+		if (Frame.Parent.Get() == Child || Frame.Child.Get() == Child)
+		{
+			UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][PushNestedTransaction] Cyclic nested push rejected"))
+			return false;
+		}
+	}
+	
+
+	//	挂起父 + 换手：帧的两个强引用是父此后唯一的锚（锚点硬约束，不变量 1）。
+	//	先入栈再换手——入栈时忙锁仍指向父，帧记下来的就是父
+	NestedStack.Push({ActiveTransaction , Child});
+	ActiveTransaction = Child;
+
+	//	子交易开自己的窗口；合规插入点上 ActiveWindow 必为空，不撞单层窗口保护（卷 04 §3.2）。
+	//	注意：子交易入队方式为 P3 决策点（Start(bNested) vs EnqueueNested()，P3 §3.9）——此处按骨架取"直接驱动"
+	Child->Drive();
+	return true;
+}
+
+void UBattleGameFlowSubsystem::PopNestedTransaction(UBattleTransaction* Child)
+{
+	//	栈顶自校：唯一调用点已判过栈顶，这里再校一遍，防将来新增调用点弹错帧（弹错 = 换手给错父）
+	if (NestedStack.IsEmpty() || NestedStack.Last().Child.Get() != Child)
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[GameFlow][PopNestedTransaction] Transaction to pop is not the stack top"))
+		return;
+	};
+
+	//	按值取出：本地副本即换手落地前父/子的锚，别用引用接（引用会在弹栈后悬空）
+	FNestedTransactionFrame Frame = NestedStack.Pop();
+	ActiveTransaction = Frame.Parent.Get();		//	换手回父（不重发入队、不重发 Enqueued 事件，不变量 5）
+
+	//	TODO(P5 · 卷 04 §3.2「父的续行点」决策项)：父的续行尚未定稿——子交易若开窗（P5 濒死必开），
+	//	父必须走 ResumeFromNested() 显式续行（由本函数调起）；P3 无真实使用者，父停在挂起点
 }
 
 void UBattleGameFlowSubsystem::CloseTimingWindow()
@@ -587,8 +724,9 @@ void UBattleGameFlowSubsystem::CloseTimingWindow()
 	//	幂等保护：关窗只发生一次（防御多路径重复收口造成回调重入）
 	if (!ActiveWindow.IsSet()) return;
 
-	//	⑥-1 撤 State.Responding 锁：窗口期被阻断的无关输入自此恢复
-	bRespondingLock = false;
+	//	⑥-1 撤 State.Responding 锁（单一收口 ExitResponseLock，广播 FResponseLockChanged(false)）：
+	//	窗口期被阻断的无关输入自此恢复
+	ExitResponseLock();
 
 	//	⑥-2 先摘出负载、复位窗口状态，再广播/回调——顺序关键：回调里可能立刻开新窗
 	//	（阶段机 Advance 续走遇下一个 _Pre/_Post），若不先复位会被 OpenTimingWindow 的"单层窗口保护"拒绝

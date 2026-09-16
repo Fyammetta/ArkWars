@@ -29,6 +29,13 @@ void UBattleTransaction::Drive()
 	QueryTimings();
 }
 
+void UBattleTransaction::TryExecute()
+{
+	if (!Validate()) return Finish(false);
+	FoldMods();
+	Execute();
+}
+
 
 void UBattleTransaction::AppendModification(const FTransactionModRequest& Req)
 {
@@ -45,6 +52,7 @@ void UBattleTransaction::AppendModification(const FTransactionModRequest& Req)
 		System->OnTransactionModified.Broadcast(this, Req);
 	}
 }
+
 
 void UBattleTransaction::Finish(bool bSuccess)
 {
@@ -68,7 +76,7 @@ void UBattleTransaction::QueryTimings()
 	//	直通族（无登记的查询时机）：不开窗直接 Execute——行为与 P2 完全一致，零延迟路径
 	if (Timings.IsEmpty() || !System)
 	{
-		Execute();
+		TryExecute();
 		return;
 	}
 
@@ -101,7 +109,8 @@ void UBattleTransaction::OnWindowClosed()
 		return;
 	}
 
-	//	全部时机问完（或子系统缺席）→ 交族裁决：Execute 开头 FoldMods() 一次性折叠修正
-	//	（Ignore 短路即"被防"）→ 族自收尾 Finish(true/false)；基类不懂具体失效语义
-	Execute();
+	//	全部时机问完（或子系统缺席）→ 交族裁决：Execute 开头 FoldMods() 一次性折叠修正，
+	//	折零 = "被防"（族在 Execute 开头自判：_Count <= 0 → Finish(false)）→ 族自收尾；
+	//	基类不懂具体失效语义
+	TryExecute();
 }

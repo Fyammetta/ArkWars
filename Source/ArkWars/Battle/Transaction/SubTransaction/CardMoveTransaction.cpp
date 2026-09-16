@@ -13,14 +13,15 @@
 
 void UCardMoveTransaction::Execute()
 {
-	//① 入参校验不通过直接失败收尾
-	if (!Validate()) return Finish(false);
-	//② 预选牌（Cards 非空）按实体定位；否则按消息 DSL 取序
-	bool bIsSelected = !Cards.IsEmpty();
+	//① 入参校验在外部进行
 	
 
-	
-	FoldMods();
+	//② 预选牌（Cards 非空）按实体定位；否则按消息 DSL 取序
+	bool bIsSelected = !Cards.IsEmpty();
+
+	//折零 = "被防"（折零即被防）：DSL 路径折叠后一张不取即未发生移动——不落子、不广播 Moved 事实
+	//（否则"被防"会被记成一次成功移动）；预置牌路径 _Count 不参与取序，不受此判
+	if (!bIsSelected && Message->_Count <= 0) return Finish(false);
 	
 	//③ 折叠修正后解析两端容器（区域解析唯一入口，卷 08 §4 / P2 §2-F）
 	auto From = UBattleFunctionLibrary::ResolveContainer(Instigator.Get(), Message->_From);
@@ -53,9 +54,40 @@ TArray<FGameplayTag> UCardMoveTransaction::GetQueryTimingTags() const
 	return { Timing::Card::PreMove };
 }
 
-//TODO: 修正折叠当前为空实现（直通），修正链待接（P2 §2-D）
+//	折叠口径（U2 定稿）：全程 float 域累加，只在"_Count = 整数张数"这一个语义点上做一次
+//	RoundToInt 回填——避免逐条截断的累积误差（两条 Add(-0.5)：float 域累出 -1，逐条截断得 0）。
+//	Override 立即覆写并短路（其前累计抹除、其后修正全废），幅值同样过 RoundToInt（定稿甲：
+//	与末次回填同一函数、同一语义点；负值落 _Count <= 0，与折零同归"被防"）；
+//	预置牌（Cards 非空）不参与折叠。
 void UCardMoveTransaction::FoldMods()
 {
+	
+	if (!Cards.IsEmpty()) return;
+	
+	float Addition = 0.f;
+	float Multiplication = 1.f;
+	TOptional<float> ClampCap;
+	
+	for (const FTransactionModRequest& Req : ModeRequests)
+	{
+		switch (Req.Operation)
+		{
+			using EOP = FTransactionModRequest::EModOp;
+			case EOP::Add:			Addition += Req.Magnitude; break;
+			case EOP::Multiply:		Multiplication *= Req.Magnitude; break;
+			case EOP::Clamp:		ClampCap = ClampCap.IsSet() ? FMath::Min(Req.Magnitude, ClampCap.GetValue()) : Req.Magnitude; break;
+			case EOP::Override:		Message->_Count = FMath::RoundToInt(Req.Magnitude); return ModeRequests.Empty();
+		}
+	}
+	
+	ModeRequests.Empty();
+	float Result = Message->_Count;
+	(Result += Addition) *= Multiplication;
+	
+	if (ClampCap.IsSet())
+		Result = FMath::Clamp(Result, 0, FMath::RoundToInt(ClampCap.GetValue()));
+	
+	Message->_Count = FMath::RoundToInt(Result);
 }
 
 bool UCardMoveTransaction::Validate() const
@@ -107,6 +139,62 @@ UCardMoveTransaction* UCardMoveTransaction::Create(const FString& Msg, const TAr
 	RetVal->Message = MakeUnique<GameMessage::FMoveMessage>(Msg);
 	RetVal->Cards = CardsToMove;
 	return RetVal;
+}
+
+const GameMessage::FMoveMessage& UCardMoveTransaction::GetMessage() const
+{
+	//	只读侧不设窗口闸门（卷 04 §4.1）：预检 / 候选下发随时可看，窗外亦然；
+	//	返回引用以省拷贝，约束不变：调用方不得留存（交易随窗口存活，跨窗持有即悬垂）
+	return *Message;
+}
+
+bool UCardMoveTransaction::ModifyMessage(TFunctionRef<void(GameMessage::FMoveMessage&)> Modifier)
+{
+	//	窗外告警拒（卷 04 §4.1，与 AppendModification 同款闸门）：
+	//	结构直写只发生在查询期——窗外提交意味着响应者不在任何窗口负载里，属接线错误而非玩法事件
+	if (State != EState::Querying)
+	{
+		UE_LOG(LogCard, Warning, TEXT("[UCardMoveTransaction][ModifyMessage] State is not Querying, structure modification rejected"));
+		return false;
+	}
+
+	//	意图载体缺席（工厂解析失败）时无可改之物；
+	//	语义合法性不在此处判——Execute 前 Validate() 是唯一安全网（卷 04 §4.1），
+	//	此处放行的改动活不到落子，不落子即由族自收尾
+	if (!Message.IsValid())
+	{
+		UE_LOG(LogCard, Warning, TEXT("[UCardMoveTransaction][ModifyMessage] Message is null, structure modification rejected"));
+		return false;
+	}
+
+	//	纪律快照：守卫只还原违规字段，Modifier 的其余合法结构修改仍然生效
+	const int32 CountBefore = Message->_Count;
+	const FGameplayTag FromBefore = Message->_From;
+	const bool bFromLocked = !Cards.IsEmpty();
+
+	//	放行结构直写：_To / _Order / Predicate / _Meta 及 DSL 取序下的 _From
+	Modifier(*Message);
+
+	//	纪律①（卷 04 §4.1）：数值位不开第二通道——_Count 只经 ModRequest 折叠，
+	//	双通道 = 多响应者并发写歧义、不可回放，故此处直改一律还原
+	if (Message->_Count != CountBefore)
+	{
+		UE_LOG(LogCard, Warning, TEXT("[UCardMoveTransaction][ModifyMessage] _Count is fold-only, reverted from %d to %d"),
+			Message->_Count, CountBefore);
+		Message->_Count = CountBefore;
+	}
+
+	//	纪律②（P3 §7）：预置牌（Cards 非空）锁定 _From——改源区会让预置牌与源区脱钩，
+	//	HandleMovement_Selected 查无牌即走"直送不 Consume"分支，牌凭空落目标区而源区不扣
+	if (bFromLocked && Message->_From != FromBefore)
+	{
+		UE_LOG(LogCard, Warning, TEXT("[UCardMoveTransaction][ModifyMessage] _From is locked by selected cards, reverted to %s"),
+			*FromBefore.ToString());
+		Message->_From = FromBefore;
+	}
+
+	//	结构修改是直写，不进 ModeRequests、不广播 FTransactionModified（卷 12 §5.2 该项只登记数值追加）
+	return true;
 }
 
 void UCardMoveTransaction::HandleMovement_Selected(ICardContainerInterface* From)

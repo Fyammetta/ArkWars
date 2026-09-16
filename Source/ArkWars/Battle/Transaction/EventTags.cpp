@@ -22,6 +22,36 @@ namespace Timing
 		UE_DEFINE_GAMEPLAY_TAG(Discard,					"Event.Timing.Phase.Discard.Start")
 		UE_DEFINE_GAMEPLAY_TAG(Discard_Post,			"Event.Timing.Phase.Discard.Post")
 		UE_DEFINE_GAMEPLAY_TAG(Finish,					"Event.Timing.Phase.Finish.Start")
+		FGameplayTag PhaseEnumToTimingTag(EGamePhase Phase)
+		{
+			//	阶段枚举 → 时机索引键（Event.Timing.Phase.* 族）：开窗链路（Advance 遇 Begin/Finish/_Pre/_Post）
+			//	按本族查技能时机索引，空表即"无监听直通"。与 GamePhase::GetPhaseTag（Phase.* 族，阶段身份
+			//	标签，供 BroadcastPhaseChange）形状平行、用途不同——新增 EGamePhase 枚举值须同步两处映射
+			//	（另一处 = ArkWarFlowTypes.cpp::GetPhaseTag）
+			switch (Phase)
+			{
+				case EGamePhase::GameStart:			return GameStart;
+				case EGamePhase::Begin:				return Begin;
+				case EGamePhase::Preparation_Pre:	return Preparation_Pre;
+				case EGamePhase::Preparation:		return Preparation;
+				case EGamePhase::Preparation_Post:	return Preparation_Post;
+				case EGamePhase::Judgment_Pre:		return Judgment_Pre;
+				case EGamePhase::Judgment:			return Judgment;
+				case EGamePhase::Judgment_Post:		return Judgment_Post;
+				case EGamePhase::Draw_Pre:			return Draw_Pre;
+				case EGamePhase::Draw:				return Draw;
+				case EGamePhase::Draw_Post:			return Draw_Post;
+				case EGamePhase::Action_Pre:		return Action_Pre;
+				case EGamePhase::Action:			return Action;
+				case EGamePhase::Action_Post:		return Action_Post;
+				case EGamePhase::Discard_Pre:		return Discard_Pre;
+				case EGamePhase::Discard:			return Discard;
+				case EGamePhase::Discard_Post:		return Discard_Post;
+				case EGamePhase::Finish:			return Finish;
+			}
+			//	非法输入（含将来新增却漏登记的枚举值）：无效标签 → 窗口侧查表得空 → "无监听直通"零成本路径
+			return FGameplayTag::EmptyTag;
+		}
 	}
 	namespace Card
 	{

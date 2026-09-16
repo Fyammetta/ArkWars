@@ -41,11 +41,19 @@ DECLARE_MULTICAST_DELEGATE_FourParams(FCardMovedDelegate, const FGameplayTag& /*
 
 ///	C 面事件化委托（卷 12 §5.2 / 附录 B）：把引擎内部推进链路开放为"只增观察点"的订阅位——只看不动手。
 ///	纪律：广播是旁路——订阅者回调抛错/耗时不得改变交易与窗口推进（卷 12 §7）；均为服务器侧观察点。
-///	注意：窗口的"询问/响应"本身是 B 面（窗口机制），下面三条只是它的 C 面观察位，订阅它们得不到任何干预权。
+///	注意：窗口的"询问/响应"本身是 B 面（窗口机制），下面四条只是它的 C 面观察位，订阅它们得不到任何干预权。
 
 ///	窗口开启：Responders 名单填出后、开始询问前广播（广播者 = UBattleGameFlowSubsystem::OpenTimingWindow）
 DECLARE_MULTICAST_DELEGATE_OneParam(FWindowOpenedDelegate, const FResponseWindow& /* Window */);
 ///	窗口关闭：结果回写完成后、回调持有者（阶段机 Advance / 交易 OnWindowClosed）之前广播（广播者 = CloseTimingWindow）
 DECLARE_MULTICAST_DELEGATE_TwoParams(FWindowClosedDelegate, const FResponseWindow& /* Window */, bool /* bAnyResponded */);
+///	响应锁切换：锁进入/退出瞬间广播，bool 形参为新值（广播者 = TryEnterResponseLock / ExitResponseLock，卷 10 §4 / 卷 12 §5.2）
+DECLARE_MULTICAST_DELEGATE_OneParam(FResponseLockChangedDelegate, bool /* bResponding */);
 ///	交易被修改：ModeRequests.Add 之后广播，仅日志/表现/回放用，不参与折叠（广播者 = UBattleTransaction::AppendModification）
 DECLARE_MULTICAST_DELEGATE_TwoParams(FTransactionModifiedDelegate, UBattleTransaction* /* Tx */, const FTransactionModRequest& /* Req */);
+/// 交易入队，忙锁分支之前广播
+DECLARE_MULTICAST_DELEGATE_OneParam(FTransactionEnqueuedDelegate, UBattleTransaction* /* Tx */);
+/// 交易完成，被清除忙锁前广播
+DECLARE_MULTICAST_DELEGATE_TwoParams(FTransactionFinishedDelegate, UBattleTransaction* /* Tx */, bool /* bSuccses */);
+/// 交易被附加嵌套交易后或嵌套交易完成前广播
+DECLARE_MULTICAST_DELEGATE_TwoParams(FTransactionNestedDelegate, UBattleTransaction* /* Child */, UBattleTransaction* /* Parent */);

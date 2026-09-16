@@ -30,8 +30,14 @@ class ARKWARS_API UBattleGameFlowSubsystem : public UWorldSubsystem
 	
 	UPROPERTY()
 	TArray<UBattleTransaction*> PendingTransactions;
+	TArray<FNestedTransactionFrame> NestedStack;
 	
-	TWeakObjectPtr<UBattleTransaction> ActiveTransaction;
+	///	当前结算者（忙锁 + GC 锚）：强持有且反射可见——交易出队后即由这里持有，存活不依赖调用栈；
+	///	窗口的 TStrongObjectPtr 只是悬停期的第二重锚（EventTypes.h）
+	///	嵌套（P5，卷 04 §3.2）：换手只发生在本字段——父挂起后改由 NestedStack 栈帧强持有，
+	///	故栈帧的 Parent/Child 必须同为强引用，否则换手瞬间父/子裸奔，GC 一到即悬空
+	UPROPERTY()
+	TObjectPtr<UBattleTransaction> ActiveTransaction;
 	
 	/** 仅服务器存在，FIFO */
 	TArray<GameMessage::FPhaseMessage> PhaseMsgQueue;
@@ -132,11 +138,37 @@ public:
 	/** 窗口内放弃（未来 ServerRPC 的服务端落点）：校验当前被询问者后直接推进下一位 */
 	void DeclineWindowResponse(APlayerState* Responder);
 
+	///	响应锁（State.Responding）单一收口（卷 10 §4）：
+	///	P3 框架期 = 子系统 bool 闸门（服务器侧状态）；将来升级 GE 阻断（ASC + State.Responding
+	///	GameplayTag）只换本组内部实现，调用方一律按 IsResponding() 查 → 零修改
+
+	/**	当前是否处于响应中（窗口悬停期）——调用方判"无关输入是否被阻断"的唯一入口 */
+	bool IsResponding() const { return bRespondingLock; }
+
+	/**
+	 *	尝试进入响应：置位并广播 FResponseLockChanged(true)
+	 *	@return					false = 已在响应中（拒绝；锁状态与广播均不动），调用方据此拒绝 + 日志
+	 */
+	bool TryEnterResponseLock();
+
+	/**	退出响应：撤锁并广播 FResponseLockChanged(false)；未上锁时为空操作（幂等） */
+	void ExitResponseLock();
+
 	///	C 面事件化委托实例（声明见 ArkWarDelegates.h，广播点登记见卷 12 §5.2）：
 	///	服务器侧观察点，订阅者仅日志/表现/调试——广播是旁路，回调异常不得影响推进
 	FWindowOpenedDelegate OnWindowOpened;
 	FWindowClosedDelegate OnWindowClosed;
 	FTransactionModifiedDelegate OnTransactionModified;
+	FResponseLockChangedDelegate OnResponseLockChanged;
+	
+	///	嵌套插队口（卷 04 §3.2 / P3 §3.9）：挂起当前结算者、先完整结算 Child，再回到父。
+	///	父就地取 ActiveTransaction——不由调用方传入（不变量 4：只有当前结算者能 Push，父的身份由子系统自证）
+	///	@return		false = 被拒（防环 / 非活动上下文 / 空子 / 非服务器），ActiveTransaction 不变
+	bool PushNestedTransaction(UBattleTransaction* Child);
+
+	///	出栈换手（唯一调用点 = OnTransactionFinished 判栈顶命中）：弹栈 + ActiveTransaction 归父，
+	///	不重发入队、不重发 Enqueued 事件（不变量 5）；父的续行点见卷 04 §3.2 决策项（P5）
+	void PopNestedTransaction(UBattleTransaction* Child);
 
 private:
 	///	窗口私有状态（P3 单层窗口：多轮链/响应链嵌套留 P7，卷 10 §3）
@@ -145,10 +177,11 @@ private:
 	EWindowPolicy ActivePolicy = EWindowPolicy::InOrder;		//	本窗策略（随开窗参数存，不进窗口形状）
 	int32 ResponderCursor = 0;									//	InOrder 询问游标：指向"当前正被询问"的响应者
 	bool bAnyResponded = false;									//	本窗是否有人响应过（FWindowClosed 广播负载）
-	bool bRespondingLock = false;								//	State.Responding 锁：窗口期阻断无关输入，关窗撤锁（P3 §3.3）
+	bool bRespondingLock = false;								//	State.Responding 锁本体：仅经 TryEnterResponseLock()/ExitResponseLock() 改写，查询走 IsResponding()（卷 10 §4）
 
-	/** ①②③ 查时机索引 → 合法预检 → 排序填名单（卷 12 §4.1）；索引未建时返回空表 = "无监听直通"（P3 §7） */
-	TArray<FResponseEntry> CollectResponders(const FGameplayTag& TimingTag, UBattleTransaction* Tx) const;
+	/** ①②③ 查时机索引 → 合法预检 → 排序填名单（卷 12 §4.1）；索引未建时返回空表 = "无监听直通"（P3 §7）
+	 *  不带负载入参：名单与负载无关，交易引用由开窗方直接挂在窗口上（EventTypes.h） */
+	TArray<FResponseEntry> CollectResponders(const FGameplayTag& TimingTag) const;
 
 	/** InOrder 推进：询问游标处响应者（下发候选），问完全员 → 关窗 */
 	void AskNextResponder();

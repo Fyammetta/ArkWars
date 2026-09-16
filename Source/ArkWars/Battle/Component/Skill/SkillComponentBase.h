@@ -7,6 +7,7 @@
 #include "SkillComponentBase.generated.h"
 
 
+class UBattleTransaction;
 struct FGameplayTag;
 struct FSkillInfo;
 
@@ -32,7 +33,7 @@ public:
 	FGameplayTag GetSkillTag() const;
 	
 	UFUNCTION(BlueprintCallable)
-	virtual void OnCanActivate(const FGameplayTag& Timing) PURE_VIRTUAL(OnCanActivate);
+	virtual void OnCanActivate(const FGameplayTag& Timing, UBattleTransaction* Tx) PURE_VIRTUAL(OnCanActivate);
 protected:
 	
 	virtual void RegisterActivateTiming() PURE_VIRTUAL(RegisterActivateTiming);

@@ -7,6 +7,8 @@
 #include "GameFramework/PlayerController.h"
 #include "BattlePlayerController.generated.h"
 
+struct FClientResponseWindow;
+struct FWindowResponseRequest;
 struct FArkCard;
 class ICardContainerInterface;
 /**
@@ -110,4 +112,13 @@ private:
 	
 	UFUNCTION(Server, Reliable)
 	void Server_ConfirmComparison(const FArkCard& Card, bool bIsInitiator);
+	
+	UFUNCTION(Client, Reliable)
+	void Client_OpenResponseWindow(const FClientResponseWindow& Window);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_SubmitWindowResponse(const FWindowResponseRequest& Req);
+	
+	UFUNCTION(Client, Reliable)
+	void Server_DeclineWindowResponse(int32 WindowSerial);
 };

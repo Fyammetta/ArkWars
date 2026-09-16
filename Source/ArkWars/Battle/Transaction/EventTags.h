@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "GameplayTagContainer.h"
 #include "NativeGameplayTags.h"
+#include "ArkWars/Battle/Toolkits/ArkWarFlowTypes.h"
 
 namespace Timing
 {
@@ -24,6 +25,8 @@ namespace Timing
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Discard)				// Phase.Discard
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Discard_Post)		// Phase.Discard_Post
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Finish)				// Phase.Finish
+		
+		FGameplayTag PhaseEnumToTimingTag(EGamePhase Phase);
 	}
 	namespace Card
 	{
