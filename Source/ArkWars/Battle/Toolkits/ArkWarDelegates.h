@@ -3,6 +3,7 @@
 
 struct FArkCard;
 struct FResponseWindow;
+struct FClientResponseWindow;
 struct FTransactionModRequest;
 class APlayerState;
 class AActor;
@@ -54,6 +55,21 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FTransactionModifiedDelegate, UBattleTransa
 /// 交易入队，忙锁分支之前广播
 DECLARE_MULTICAST_DELEGATE_OneParam(FTransactionEnqueuedDelegate, UBattleTransaction* /* Tx */);
 /// 交易完成，被清除忙锁前广播
-DECLARE_MULTICAST_DELEGATE_TwoParams(FTransactionFinishedDelegate, UBattleTransaction* /* Tx */, bool /* bSuccses */);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FTransactionFinishedDelegate, UBattleTransaction* /* Tx */, bool /* bSuccess */);
 /// 交易被附加嵌套交易后或嵌套交易完成前广播
 DECLARE_MULTICAST_DELEGATE_TwoParams(FTransactionNestedDelegate, UBattleTransaction* /* Child */, UBattleTransaction* /* Parent */);
+
+///	====================================================================================================
+///	客户端侧（非观察点）：服务器把窗口【定向】下发给被询问者本人后，由该玩家的 PC 广播（卷 11 §5.2）。
+///	与上面的服务器侧观察位分属两端，刻意不复用 FWindowOpenedDelegate：
+///	  · 形状不同——后者带 FResponseWindow（含交易强引用与 Responders 名单），客户端一个都填不出；
+///	    客户端那份裁剪视图是 FClientResponseWindow。
+///	  · 受众不同——后者是【全局观察点】（"这一轮谁在响应"，旁观/日志/调试）；
+///	    本委托是【定向消息】（"我该不该弹面板"）。改成世界广播即丢失"给谁"的语义
+///	    （FClientResponseWindow 无 Target 字段——收件人由 Client RPC 的定向性白送）。
+///	  · 语义陷阱——硬塞进 FWindowOpenedDelegate 只能填出空 Responders，而空 Responders
+///	    在服务器侧恰好是"无监听直通"（OpenTimingWindow 判 IsEmpty 即关窗）：同一形状、同样为空，两端意思相反。
+///	====================================================================================================
+
+///	响应窗口已下发（定向）：订阅者 = 本玩家的 UI（展开面板 + 自起倒计时）与需要表现的技能组件
+DECLARE_MULTICAST_DELEGATE_OneParam(FWindowResponseRequestedDelegate, const FClientResponseWindow& /* Window */);

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "GameFramework/PlayerController.h"
+#include "ArkWars/Battle/Toolkits/ArkWarDelegates.h"
 #include "BattlePlayerController.generated.h"
 
 struct FClientResponseWindow;
@@ -19,7 +20,7 @@ class ARKWARS_API ABattlePlayerController : public APlayerController
 {
 	GENERATED_BODY()
 	
-
+	FTimerHandle DeclineHandle;
 public:
 	
 	///Try前缀均为UI接口，内部转发Server RPC调用
@@ -88,7 +89,27 @@ public:
 	 */
 	void TryActivateSkill(const FGameplayTag& SkillTag);
 
-	
+	///	=====================  响应窗口  =====================
+
+	/**
+	 *	窗口内响应提交（UI 入口）：纯转发 Server RPC，不做任何裁决（零信任，卷 11 §5.2）
+	 *	@param Req	上行意图 DTO：窗口句柄 + 所选技能
+	 */
+	void TrySubmitWindowResponse(const FWindowResponseRequest& Req);
+
+	/**
+	 *	窗口内放弃（UI 入口）：UI 倒计时到点也走本入口（超时 = 直接请求关闭，卷 10 §4）
+	 *	@param WindowSerial	窗口句柄
+	 */
+	void TryDeclineWindowResponse(int32 WindowSerial);
+
+	///	客户端侧窗口下发（定向，非观察点，声明见 ArkWarDelegates.h）：
+	///	订阅者 = 本玩家的 UI（展开面板 + 自起倒计时）与需要表现的技能组件。
+	///	宿主是 PC 而非子系统——这条消息只属于"被询问的这个人"：定向消息挂个体，
+	///	全局观察点（Subsystem::OnWindowOpened）挂世界级对象，两者受众与形状都不同
+	FWindowResponseRequestedDelegate OnWindowResponseRequested;
+
+
 private:
 	///===================== RPC =====================
 
@@ -113,12 +134,13 @@ private:
 	UFUNCTION(Server, Reliable)
 	void Server_ConfirmComparison(const FArkCard& Card, bool bIsInitiator);
 	
-	UFUNCTION(Client, Reliable)
-	void Client_OpenResponseWindow(const FClientResponseWindow& Window);
-	
 	UFUNCTION(Server, Reliable)
 	void Server_SubmitWindowResponse(const FWindowResponseRequest& Req);
 	
-	UFUNCTION(Client, Reliable)
+	UFUNCTION(Server, Reliable)
 	void Server_DeclineWindowResponse(int32 WindowSerial);
+	
+public:
+	UFUNCTION(Client, Reliable)
+	void Client_OpenResponseWindow(const FClientResponseWindow& Window);
 };

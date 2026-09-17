@@ -70,3 +70,48 @@ protected:
 	///	QueryTimings 开首窗，OnWindowClosed 关一扇推一格、问完才 Execute（逐个开，P3 §3.4）
 	int32 QueryTimingCursor = 0;
 };
+
+//	↓↓↓ 以下两个形状引用交易本体（TStrongObjectPtr<UBattleTransaction>），故必须落在 UBattleTransaction
+//	定义之后：TStrongObjectPtr 的构造要求类型完整（static_assert），这与"谁持有它"无关，是类型系统的账
+//
+//	不留在原位 EventTypes.h——硬约束而非偏好：该头带 USTRUCT，UHT 为它生成 EventTypes.gen.cpp，
+//	而那个生成单元【只 include EventTypes.h 自己】（不借任何邻居）；于是头里任何需要外部完整类型的
+//	内联代码都无处借力——FNestedTransactionFrame 的构造正是内联在此——改一次 EventTypes.h 即编译失败。
+//	补 include 治不了：反向成环（本头已 include EventTypes.h）
+//
+//	也不另立 WindowTypes.h、不挪进 ArkWarFlowTypes.h——技术上两者都可行（后者 include 本头即可、不成环），
+//	代价却是把"完整类型"扩散给该头的全体使用者：凡是 include 流程类型的 TU 都要跟着背上整个
+//	UBattleTransaction。而本结构的消费者当前只有两处——UBattleGameFlowSubsystem（持
+//	TOptional<FResponseWindow> ActiveWindow）与 ArkWarDelegates.h 的只读委托签名（那里前置声明即可）。
+//	放这里，代价只由真正构造它的 TU 付。且它本身是窗口机制的私有状态（纯 server 私产）、不是通用流程类型，
+//	归交易的头恰与"契约归宿主"一致——用了交易本体的形状，就由交易的头提供定义
+
+//	窗口基座（纯 server 私产，无复制语义，故为普通结构体）
+struct FResponseWindow
+{
+	//	窗口句柄：开窗时自增取值（服务器单调递增、StartGame 归零 = 一局一句柄空间），随候选下发、
+	//	随提交/放弃回传比对——防陈旧/重放（卷 11 §5.2）：上一扇窗迟到的"超时放弃"不得作用于本窗。
+	//	恒 ≥ 1（0 是"未填"哨兵：任何合法句柄都不等于它）；只比对"是否等于当前窗"，不承担鉴权，故无需不可猜测
+	int32 WindowSerial = 0;
+
+	FGameplayTag Timing;
+
+	//	负载本体 + 悬停期强持有：交易出队后 PendingTransactions 不再持有它，
+	//	这里是窗口悬停期唯一的 GC 锚（TStrongObjectPtr 强引用，不依赖反射追踪）；纯阶段时机为空
+	TStrongObjectPtr<UBattleTransaction> Tx;
+
+	TArray<FResponseEntry> Responders;
+
+	float Timeout;
+};
+
+//	嵌套交易帧（卷 04 §3.2）：父/子必须同为强引用——换手后父的强引用只剩本帧，
+//	弱引用会让父在子交易悬停期被 GC，出栈即悬空（不变量 1）
+struct FNestedTransactionFrame
+{
+	TStrongObjectPtr<UBattleTransaction> Parent;
+	TStrongObjectPtr<UBattleTransaction> Child;
+
+	FNestedTransactionFrame() : Parent(nullptr), Child(nullptr) {}
+	FNestedTransactionFrame(UBattleTransaction* Parent, UBattleTransaction* Child) : Parent(TStrongObjectPtr(Parent)), Child(TStrongObjectPtr(Child)) {}
+};

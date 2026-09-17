@@ -62,7 +62,9 @@ void UBattleTransaction::Finish(bool bSuccess)
 	if (!System) return;
 	
 	BroadcastFinish(bSuccess);
-	System->OnTransactionFinished(this);
+	//	结局随通知一起上行：子系统要把 bSuccess 交给 OnTransactionFinishedEvent（对外观察位），
+	//	而本函数是它唯一的来源——不在此透传，上面那次 BroadcastFinish 的结局就在这一步断掉
+	System->OnTransactionFinished(this, bSuccess);
 }
 
 void UBattleTransaction::QueryTimings()

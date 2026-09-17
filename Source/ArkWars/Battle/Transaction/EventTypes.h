@@ -2,15 +2,22 @@
 #include "GameplayTagContainer.h"
 #include "EventTypes.generated.h"
 
+struct FResponseWindow;
 class UBattleTransaction;
 
 
 
+//	窗口策略（权威定义；卷 10 §2 的表述与此逐字一致）——三策略回答的是"名单上的人【怎么被问、何时收敛】"，
+//	不是"谁有资格被问"；粒度是【技能】而非【玩家】（同一人的多个技能各占一条，同开类下各自独立决定）。
+//	发问侧只有两种形态：InOrder 问一个就停，All / FirstOnly 一次问全——文档：All/FirstOnly 无序，
+//	现实层面同时发生（排序照跑，只是策略不消费次序）；三者的差别全在【收敛条件】，
+//	实现见 BattleGameFlowSubsystem 的待回账本 ResponsePending（关窗判据是"账平"而非"发完"）。
+//	名单序 = 技能级优先级（降序主键）× 座次（次序），见卷 10 §2 / CollectResponders
 enum class EWindowPolicy
 {
-	All,
-	InOrder,
-	FirstOnly
+	All,          // 名单上所有合法技能同开，各自独立决定（多伤害减免可同时响应）
+	InOrder,      // 按次序逐个询问，前一个不响/响完再到下一个（"逐人询问是否出回应牌"）
+	FirstOnly     // 谁先响应生效，其余作废（首响抢占类）
 };
 
 
@@ -39,20 +46,6 @@ struct FResponseEntry
 	FGameplayTag Key;
 };
 
-//	窗口基座（纯 server 私产，无复制语义，故为普通结构体）
-struct FResponseWindow
-{
-	FGameplayTag Timing;
-
-	//	负载本体 + 悬停期强持有：交易出队后 PendingTransactions 不再持有它，
-	//	这里是窗口悬停期唯一的 GC 锚（TStrongObjectPtr 强引用，不依赖反射追踪）；纯阶段时机为空
-	TStrongObjectPtr<UBattleTransaction> Tx;
-
-	TArray<FResponseEntry> Responders;
-
-	float Timeout;
-};
-
 USTRUCT(BlueprintType)
 struct FClientResponseWindow
 {
@@ -77,6 +70,15 @@ struct FClientResponseWindow
 	//若false，则为纯阶段窗口
 	UPROPERTY(BlueprintReadWrite)
 	bool bHasTransaction = false;
+	
+	//	默认构造必须显式保留：RPC 序列化要它，删了 Client_OpenResponseWindow 就编不过
+	FClientResponseWindow() = default;
+
+	//	服务器窗口 → 客户端视图（P3 §3.3 候选下发的翻译层）。
+	//	定义落在 EventTypes.cpp 而非头内联：读 FResponseWindow 的成员要它完整，而它定义在
+	//	BattleTransaction.h（本头反向 include 会成环）——头里只留声明，完整类型的账由那个 TU 付。
+	//	带 Entry 而非只带 Window：下发的候选就是【本次询问的那一条】，理由见 .cpp
+	FClientResponseWindow(const FResponseWindow& Window, const FResponseEntry& Entry);
 };
 
 USTRUCT(BlueprintType)
@@ -91,13 +93,4 @@ struct FWindowResponseRequest
 	//Client上报使用的技能
 	UPROPERTY(BlueprintReadWrite)
 	FGameplayTag Skill;
-};
-
-struct FNestedTransactionFrame
-{
-	TStrongObjectPtr<UBattleTransaction> Parent;
-	TStrongObjectPtr<UBattleTransaction> Child;
-	
-	FNestedTransactionFrame() : Parent(nullptr), Child(nullptr) {}
-	FNestedTransactionFrame(UBattleTransaction* Parent, UBattleTransaction* Child) : Parent(TStrongObjectPtr(Parent)), Child(TStrongObjectPtr(Child)) {}
 };
