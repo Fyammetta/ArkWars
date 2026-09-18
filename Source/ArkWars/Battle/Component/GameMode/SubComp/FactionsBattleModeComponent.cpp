@@ -7,7 +7,7 @@
 #include "ArkWars/ArkWars.h"
 #include "GameFramework/PlayerState.h"
 #include "AbilitySystemComponent.h"
-#include "ArkWars/Battle/Core/PlayerOperatorInterface.h"
+#include "ArkWars/Battle/Core/BattlePlayerController.h"
 #include "ArkWars/Battle/Toolkits/ArkWarTags.h"
 #include "GameFramework/GameStateBase.h"
 
@@ -94,17 +94,22 @@ void UFactionsBattleModeComponent::SentSelectOperatorNotify()
 {
 	if (!StartPlayer.IsValid()) return;
 	
-	if (auto Interface = Cast<IPlayerOperatorInterface>(StartPlayer))
+	//	候选经本人 PC 定向下发（卷 11 §5.2）：取不到 PC = 界面收不到候选，玩家卡在选角，故留一条 Warning
+	if (auto PC = Cast<ABattlePlayerController>(StartPlayer->GetPlayerController()))
 	{
 		TArray<FName> ToSelect {};
 		for (int i = 0; i < OperatorToSelect + StartCountAddition; ++i)
 		{
 			auto Max = TotalOperators.Num() - 1;
 			TotalOperators.Swap(Max, FMath::RandRange(0, Max));
-				
+
 			ToSelect.Add(TotalOperators.Pop());
 		}
-		Interface->NotifySelectOperator(ToSelect);
+		PC->Client_NotifySelectOperator(ToSelect);
+	}
+	else
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[UFactionsBattleModeComponent][SentSelectOperatorNotify] No battle player controller for %s, candidate dispatch skipped"), *GetNameSafe(StartPlayer.Get()))
 	}
 }
 
@@ -118,17 +123,22 @@ void UFactionsBattleModeComponent::CheckOperatorSelection(APlayerState* Player, 
 		//TODO: 其他角色分别选
 		for (auto UnRegisteredPlayer : UnRegisteredPlayers)
 		{
-			if (auto Interface = Cast<IPlayerOperatorInterface>(UnRegisteredPlayer))
+			//	候选经本人 PC 定向下发（卷 11 §5.2）：取不到 PC = 界面收不到候选，玩家卡在选角，故留一条 Warning
+			if (auto PC = UnRegisteredPlayer.IsValid() ? Cast<ABattlePlayerController>(UnRegisteredPlayer->GetPlayerController()) : nullptr)
 			{
 				TArray<FName> ToSelect {};
 				for (int i = 0; i < OperatorToSelect; ++i)
 				{
 					auto Max = TotalOperators.Num() - 1;
 					TotalOperators.Swap(Max, FMath::RandRange(0, Max));
-				
+
 					ToSelect.Add(TotalOperators.Pop());
 				}
-				Interface->NotifySelectOperator(ToSelect);
+				PC->Client_NotifySelectOperator(ToSelect);
+			}
+			else
+			{
+				UE_LOG(LogGamePlay, Warning, TEXT("[UFactionsBattleModeComponent][CheckOperatorSelection] No battle player controller for %s, candidate dispatch skipped"), *GetNameSafe(UnRegisteredPlayer.Get()))
 			}
 		}
 		return;

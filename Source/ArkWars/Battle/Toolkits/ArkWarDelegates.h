@@ -73,3 +73,7 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FTransactionNestedDelegate, UBattleTransact
 
 ///	响应窗口已下发（定向）：订阅者 = 本玩家的 UI（展开面板 + 自起倒计时）与需要表现的技能组件
 DECLARE_MULTICAST_DELEGATE_OneParam(FWindowResponseRequestedDelegate, const FClientResponseWindow& /* Window */);
+
+///	选角候选已下发（定向，同族：客户端侧非观察点）：订阅者 = 本玩家的 UI（展开选角界面）。
+///	宿主同为 PC，理由与上一条一致——候选名单只属于"被问的这个人"，广播到世界即丢失"给谁"的语义
+DECLARE_MULTICAST_DELEGATE_OneParam(FOperatorSelectRequestedDelegate, const TArray<FName>& /* OperatorList */);

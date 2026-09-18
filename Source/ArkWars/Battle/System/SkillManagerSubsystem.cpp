@@ -63,7 +63,15 @@ void USkillManagerSubsystem::Deinitialize()
 
 TSharedPtr<FSkillInfo> USkillManagerSubsystem::GetCurrentSkillByTag(const FGameplayTag& Tag)
 {
-	return SkillMapping.Contains(Tag) ? SkillMapping[Tag] : nullptr;
+	if (const TSharedPtr<FSkillInfo>* Found = SkillMapping.Find(Tag))
+	{
+		return *Found;
+	}
+
+	//	索引未预载时的兜底：批量预载（OnAllOperatorSelected）要等"全部干员选完"，
+	//	而玩家是各自选完即刻初始化自己的——先落座的那位必然扑空。
+	//	此处按需补载，载入即入索引（见 AppendSkill 末尾），后续查询不再扫表
+	return AppendSkill(Tag);
 }
 
 TArray<FSkillListenerEntry> USkillManagerSubsystem::GetSkillListeners(const FGameplayTag& Timing) const
@@ -243,6 +251,10 @@ TSharedPtr<FSkillInfo> USkillManagerSubsystem::AppendSkill(const FGameplayTag& T
 			break;
 		}
 	}
-	
+
+	//	回写索引：本函数是"按需补载"入口，不回写则每次调用都全表重扫；
+	//	且 CreateSkill 走的是只读索引的 GetCurrentSkillByTag——不写回等于白载
+	SkillMapping.Add(Tag, Ptr);
+
 	return Ptr;
 }

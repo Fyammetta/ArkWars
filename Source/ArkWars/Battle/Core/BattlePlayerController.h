@@ -26,6 +26,21 @@ public:
 	///Try前缀均为UI接口，内部转发Server RPC调用
 
 
+	///	=====================  选角  =====================
+
+	/**
+	 *	选定干员（UI 入口）：纯转发 Server RPC，不做任何裁决（零信任，卷 11 §5.2）
+	 *	@param Operator	选中的干员档案键（= 干员名，与干员表行键同源）
+	 */
+	void TrySelectOperator(const FName& Operator);
+
+	///	客户端侧候选下发（定向，非观察点，声明见 ArkWarDelegates.h）：
+	///	订阅者 = 本玩家的 UI（展开选角界面）。
+	///	宿主是 PC 而非 PlayerState——同 OnWindowResponseRequested：定向消息挂个体；
+	///	且 UI 的网关只有 PC 一个（Try* 入口皆在此），PlayerState 只留业务，不留收发口
+	FOperatorSelectRequestedDelegate OnOperatorSelectRequested;
+
+
 	///	=====================  回合  =====================
 	
 	/**
@@ -114,6 +129,9 @@ private:
 	///===================== RPC =====================
 
 	UFUNCTION(Server, Reliable)
+	void Server_SelectOperator(const FName& Operator);
+
+	UFUNCTION(Server, Reliable)
 	void Server_UseCard(APlayerState* Source, const TArray<APlayerState*>& Targets, const FArkCard& Card);
 	
 	UFUNCTION(Server, Reliable)
@@ -143,4 +161,8 @@ private:
 public:
 	UFUNCTION(Client, Reliable)
 	void Client_OpenResponseWindow(const FClientResponseWindow& Window);
+
+	///	候选名单下发（服务器侧调用，由模式组件在选角阶段发出）：收件人 = 该 PC 的属主玩家
+	UFUNCTION(Client, Reliable)
+	void Client_NotifySelectOperator(const TArray<FName>& OperatorList);
 };

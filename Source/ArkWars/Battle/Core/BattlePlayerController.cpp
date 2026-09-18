@@ -13,6 +13,11 @@
 #include "ArkWars/Battle/Toolkits/BattleFunctionLibrary.h"
 #include "ArkWars/Battle/Toolkits/CardContainerInterface.h"
 
+void ABattlePlayerController::TrySelectOperator(const FName& Operator)
+{
+	Server_SelectOperator(Operator);
+}
+
 void ABattlePlayerController::TryEndPhase()
 {
 }
@@ -109,6 +114,26 @@ void ABattlePlayerController::Client_OpenResponseWindow_Implementation(const FCl
 	//	PC 不 FindComponentByTag（PC 不认窗口，同理不认技能；服务器侧那次"找组件"在子系统内，
 	//	因为子系统是窗口的主人、知道名单与游标）。谁要完整类型谁自己带 EventTypes.h
 	OnWindowResponseRequested.Broadcast(Window);
+}
+
+void ABattlePlayerController::Client_NotifySelectOperator_Implementation(const TArray<FName>& OperatorList)
+{
+	//	纯分发：候选是服务器已定的事项（A 面事实），客户端只拿去展开界面，无回话义务，故无兜底计时
+	OnOperatorSelectRequested.Broadcast(OperatorList);
+}
+
+void ABattlePlayerController::Server_SelectOperator_Implementation(const FName& Operator)
+{
+	//	零信任（卷 11 §5.2）：身份只从连接推导——本 RPC 的 this = 发起者本人的 PC，
+	//	绝不接受客户端自报的选角者。PC 不认干员表、不认候选是否在名单内，只递话；
+	//	合法性由 PlayerState 侧的 ApplyOperatorSelection 与选角裁决共同判定
+	auto PS = GetPlayerState<ABattlePlayerState>();
+	if (!PS)
+	{
+		UE_LOG(LogGamePlay, Warning, TEXT("[BattlePlayerController][Server_SelectOperator] PlayerState is missing, selection dropped (Operator:%s)"), *Operator.ToString())
+		return;
+	}
+	PS->ApplyOperatorSelection(Operator);
 }
 
 void ABattlePlayerController::Server_SubmitWindowResponse_Implementation(const FWindowResponseRequest& Req)

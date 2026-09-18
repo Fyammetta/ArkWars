@@ -17,10 +17,10 @@ class ARKWARS_API ABattlePlayerState : public APlayerState, public IAbilitySyste
 {
 	GENERATED_BODY()
 	
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UAbilitySystemComponent> Asc;
 	
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing=OnRep_OperatorSelected)
 	FName Operator;
 
 public:
@@ -36,21 +36,20 @@ public:
 	virtual TArray<FGameplayTag> GetAreaKeys() const override;
 	virtual AActor* GetContainerActor() override { return this;};
 
-	virtual void NotifySelectOperator(const TArray<FName>& OperatorList) override;
-	virtual void OnOperatorSelected(const FName& Operator) override;
 	virtual const FName& GetOperator() const override { return Operator; };
-	
+
+	///	选角落定的业务入口（服务器侧，非 RPC）：由本人 PC 的 Server_SelectOperator 调用。
+	///	不带 Server_ 前缀——它不是 RPC，是"服务器侧已授权的动作"；RPC 收发口一律在 PC（卷 11 §5.2）
+	void ApplyOperatorSelection(const FName& SelectedOperator);
+
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 	virtual void BeginPlay() override;
 	
 private:
-	UFUNCTION(Server, Reliable)
-	void Server_OnOperatorSelected(const FName& SelectedOperator);
+	void InitOperator(const FName& SelectedOperator);
 	
-	UFUNCTION(Client, Reliable)
-	void Client_NotifySelectOperator(const TArray<FName>& OperatorList);
-
-	
+	UFUNCTION()
+	void OnRep_OperatorSelected();
 };

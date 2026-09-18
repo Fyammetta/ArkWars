@@ -22,9 +22,7 @@ class ARKWARS_API IPlayerOperatorInterface
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	virtual void NotifySelectOperator(const TArray<FName>& OperatorList) = 0;
-	
-	virtual void OnOperatorSelected(const FName& Operator) = 0;
-	
+	///	干员身份的查询面。选角的收发（上行提交 / 下行候选）已迁至 PC（卷 11 §5.2）：
+	///	PlayerState 只留业务与字段，不留 RPC 口——两条消息函数若在此保留，即是第二个入口
 	virtual const FName& GetOperator() const = 0;
 };
