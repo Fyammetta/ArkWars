@@ -10,7 +10,7 @@
 #include "BattlePlayerState.generated.h"
 
 /**
- * 
+ *
  */
 UCLASS()
 class ARKWARS_API ABattlePlayerState : public APlayerState, public IAbilitySystemInterface, public ICardContainerInterface, public IPlayerOperatorInterface
@@ -19,7 +19,7 @@ class ARKWARS_API ABattlePlayerState : public APlayerState, public IAbilitySyste
 	
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UAbilitySystemComponent> Asc;
-	
+
 	UPROPERTY(ReplicatedUsing=OnRep_OperatorSelected)
 	FName Operator;
 

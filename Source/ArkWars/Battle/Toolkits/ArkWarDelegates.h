@@ -39,7 +39,8 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FCardSelectionChangeDelegate, TArray<FArkCa
 
 ///	A 面·移动族事实通知：一次卡牌移动落子后的"已移动"事实（广播者 = UCardMoveTransaction::BroadcastFinish，卷 12 §5.1）
 DECLARE_MULTICAST_DELEGATE_FourParams(FCardMovedDelegate, const FGameplayTag& /* Notify */, AActor* /* Instigator */, AActor* /* Target */, const TArray<FArkCard>& /* Cards */);
-
+///	A 面·伤害生效事件通知：传递一个bool参数，若为真则表示伤害被阻止
+DECLARE_MULTICAST_DELEGATE_OneParam(FDamageResolveDelegate, bool /* bPrevented */)
 ///	C 面事件化委托（卷 12 §5.2 / 附录 B）：把引擎内部推进链路开放为"只增观察点"的订阅位——只看不动手。
 ///	纪律：广播是旁路——订阅者回调抛错/耗时不得改变交易与窗口推进（卷 12 §7）；均为服务器侧观察点。
 ///	注意：窗口的"询问/响应"本身是 B 面（窗口机制），下面四条只是它的 C 面观察位，订阅它们得不到任何干预权。
@@ -77,3 +78,5 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FWindowResponseRequestedDelegate, const FCli
 ///	选角候选已下发（定向，同族：客户端侧非观察点）：订阅者 = 本玩家的 UI（展开选角界面）。
 ///	宿主同为 PC，理由与上一条一致——候选名单只属于"被问的这个人"，广播到世界即丢失"给谁"的语义
 DECLARE_MULTICAST_DELEGATE_OneParam(FOperatorSelectRequestedDelegate, const TArray<FName>& /* OperatorList */);
+
+

@@ -17,7 +17,13 @@ ABattlePlayerState::ABattlePlayerState()
 {
 	Asc = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	Asc->SetIsReplicated(true);
-	//Asc->AddAttributeSetSubobject(UOperatorBasicAttributes::StaticClass()->GetDefaultObject());
+
+	//	【属性集不在此挂载，勿补】挂载是 ASC 内建 DefaultStartingData 的活：引擎在 OnRegister 遍历该数组，
+	//	经 GetOrCreateAttributeSubobject（AbilitySystemComponent.cpp:103-119）以 NewObject(GetOwner(), Class)
+	//	创建并挂载，Outer 即本 PlayerState；已存在则复用，天然幂等。
+	//	配置面是 BP_TestPlayerState 上 ASC 的 DefaultStartingData（类名 UOperatorBasicAttributes +
+	//	表 DT_DefaultPlayerAttribute，二者缺一则静默不发生）。
+	//	补了反而坏事：绕开表灌值（InitFromMetaDataTable 只跑引擎那条路），还和蓝图配置凑成两个来源。
 }
 
 TArray<FArkCard> ABattlePlayerState::GetCardsByKey(const FGameplayTag& Area) const
